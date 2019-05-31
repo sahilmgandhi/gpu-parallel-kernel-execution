@@ -25,6 +25,14 @@ using namespace std;
   #define Tx  8
 #endif
 
+#ifndef CONCURRENT
+  #define CONCURRENT true
+#endif
+
+#ifndef Nb
+  #define Nb 4
+#endif
+
 #define NYPAD (Ny+Ky)
 #define NXPAD (Nx+Kx)
 
@@ -35,12 +43,12 @@ using namespace std;
 #ifndef NUM_THREADS_Y
   // conv1 is 4, conv2 is 2
   #define NUM_THREADS_Y 1
-  #define NUM_BLOCKS_Y 32
+  #define NUM_BLOCKS_Y 8
   // #define NUM_BLOCKS_Y (Ny/NUM_THREADS_Y)
 
   // conv1 and conv2 are both 2
   #define NUM_THREADS_X 1
-  #define NUM_BLOCKS_X 32
+  #define NUM_BLOCKS_X 8
   // #define NUM_BLOCKS_X (Nx/NUM_THREADS_X)
 
   // conv1 is 4, conv2 is 8
@@ -51,7 +59,7 @@ using namespace std;
 #define NUM_BLOCKS_Z (Nn/NUM_THREADS_Z)
 
 
-#define SYNAPSE_SIZE (1L*Ky*Kx*Nn*Ni)
+#define SYNAPSE_SIZE (1L*Nb*Ky*Kx*Nn*Ni)
 
 
 // #define THREADS_PER_BLOCK (NUM_THREADS_Y*NUM_THREADS_X*NUM_THREADS_Z)
@@ -60,25 +68,27 @@ using namespace std;
 #define Neuron_i(i, j, p) (neuron_i[(i)*NXPAD*Ni + (j)*Ni + (p)])
 #define Neuron_n(i, j, p) (neuron_n[(i)*NXSCL*Nn + (j)*Nn + (p)])
 
-VTYPE (*synapse)[Ky][Kx][Ni][Nn];
+VTYPE (*synapse)[Nb][Ky][Kx][Ni][Nn];
 
-VTYPE  (*neuron_i)[NYPAD][NXPAD][Ni];
-VTYPE  (*neuron_n)[NYSCL][NXSCL][Nn];
-VTYPE (*neuron_n2)[NYSCL][NXSCL][Nn];
+VTYPE (*neuron_i)[Nb][NYPAD][NXPAD][Ni];
+VTYPE (*neuron_n)[Nb][NYSCL][NXSCL][Nn];
+VTYPE (*neuron_n2)[Nb][NYSCL][NXSCL][Nn];
 
-void fill_convolution_shared_simple(VTYPE (&synapse)[Ky][Kx][Ni][Nn], 
-                                    VTYPE (&neuron_i)[NYPAD][NXPAD][Ni]) {
-  for(int yy = 0; yy < Ky; ++yy) {
-    for(int xx = 0; xx < Kx; ++xx) {
-      for(int ni = 0; ni < Ni; ++ni) {
-        for(int nn = 0; nn < Nn; ++nn) {
-          synapse[yy][xx][ni][nn] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) - 0.5f;
-        } } } }
-  for(int yy = 0; yy < NYPAD; ++yy) {
-    for(int xx = 0; xx < NXPAD; ++xx) {      
-      for(int ni = 0; ni < Ni; ++ni) {
-        neuron_i[yy][xx][ni] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) - 0.5f;
-  }  }  }
+void fill_convolution_shared_simple(VTYPE (&synapse)[Nb][Ky][Kx][Ni][Nn], 
+                                    VTYPE (&neuron_i)[Nb][NYPAD][NXPAD][Ni]) {
+  for(int bb = 0; bb < Nb; ++bb) {
+    for(int yy = 0; yy < Ky; ++yy) {
+      for(int xx = 0; xx < Kx; ++xx) {
+        for(int ni = 0; ni < Ni; ++ni) {
+          for(int nn = 0; nn < Nn; ++nn) {
+            synapse[bb][yy][xx][ni][nn] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) - 0.5f;
+          } } } } }
+  for(int bb = 0; bb < Nb; ++bb) {
+    for(int yy = 0; yy < NYPAD; ++yy) {
+      for(int xx = 0; xx < NXPAD; ++xx) {      
+        for(int ni = 0; ni < Ni; ++ni) {
+          neuron_i[bb][yy][xx][ni] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) - 0.5f;
+    }  }  }  }
 }
 
 __global__
@@ -152,10 +162,10 @@ void  convolution_layer(VTYPE (&synapse)[Ky][Kx][Ni][Nn],
 int main(const int argc, const char** argv) {
   cout << "allocating memory\n";
 
-  synapse   = (VTYPE (*)[Ky][Kx][Ni][Nn])  aligned_malloc(64,  SYNAPSE_SIZE*sizeof(VTYPE));
-  neuron_i  = (VTYPE (*)[NYPAD][NXPAD][Ni])aligned_malloc(64,NYPAD*NXPAD*Ni*sizeof(VTYPE));
-  neuron_n  = (VTYPE (*)[NYSCL][NXSCL][Nn])aligned_malloc(64,NYSCL*NXSCL*Nn*sizeof(VTYPE));
-  neuron_n2 = (VTYPE (*)[NYSCL][NXSCL][Nn])aligned_malloc(64,NYSCL*NXSCL*Nn*sizeof(VTYPE));
+  synapse   = (VTYPE (*)[Nb][Ky][Kx][Ni][Nn])  aligned_malloc(64,  SYNAPSE_SIZE*sizeof(VTYPE));
+  neuron_i  = (VTYPE (*)[Nb][NYPAD][NXPAD][Ni])aligned_malloc(64,Nb*NYPAD*NXPAD*Ni*sizeof(VTYPE));
+  neuron_n  = (VTYPE (*)[Nb][NYSCL][NXSCL][Nn])aligned_malloc(64,Nb*NYSCL*NXSCL*Nn*sizeof(VTYPE));
+  neuron_n2 = (VTYPE (*)[Nb][NYSCL][NXSCL][Nn])aligned_malloc(64,Nb*NYSCL*NXSCL*Nn*sizeof(VTYPE));
 
   cudaError_t err = cudaSuccess;
 
@@ -164,31 +174,31 @@ int main(const int argc, const char** argv) {
   fill_convolution_shared_simple(*synapse,*neuron_i);
 
   float* d_synapse = NULL;
-  err = cudaMalloc((void**)&d_synapse, Ky*Kx*Nn*Ni*sizeof(VTYPE));
+  err = cudaMalloc((void**)&d_synapse, Nb*Ky*Kx*Nn*Ni*sizeof(VTYPE));
   if (err != cudaSuccess) {
     cerr << "failed in allocating device synapse" << endl;
     exit(1);
   }
-  err = cudaMemcpy(d_synapse, synapse, Ky*Kx*Nn*Ni*sizeof(VTYPE), cudaMemcpyHostToDevice);
+  err = cudaMemcpy(d_synapse, synapse, Nb*Ky*Kx*Nn*Ni*sizeof(VTYPE), cudaMemcpyHostToDevice);
   if (err != cudaSuccess) {
     cerr << "failed in copying device synapse" << endl;
     exit(1);
   }
 
   float* d_neuron_i = NULL;
-  err = cudaMalloc((void**)&d_neuron_i, NYPAD*NXPAD*Nn*sizeof(VTYPE));
+  err = cudaMalloc((void**)&d_neuron_i, Nb*NYPAD*NXPAD*Nn*sizeof(VTYPE));
   if (err != cudaSuccess) {
     cerr << "failed in allocating device neuron_i" << endl;
     exit(1);
   }
-  err = cudaMemcpy(d_neuron_i, neuron_i, NYPAD*NXPAD*Nn*sizeof(VTYPE), cudaMemcpyHostToDevice);
+  err = cudaMemcpy(d_neuron_i, neuron_i, Nb*NYPAD*NXPAD*Nn*sizeof(VTYPE), cudaMemcpyHostToDevice);
   if (err != cudaSuccess) {
     cerr << "failed in copying device neuron_i" << endl;
     exit(1);
   }
 
   float* d_neuron_n = NULL;
-  err = cudaMalloc((void**)&d_neuron_n, NYSCL*NXSCL*Nn*sizeof(VTYPE));
+  err = cudaMalloc((void**)&d_neuron_n, Nb*NYSCL*NXSCL*Nn*sizeof(VTYPE));
   if (err != cudaSuccess) {
     cerr << "failed in allocating device neuron_n" << endl;
     exit(1);
@@ -198,17 +208,40 @@ int main(const int argc, const char** argv) {
 
   //Simple Version
   //begin_roi();
-  convolution_layer(*synapse,*neuron_i,*neuron_n);
+
+  for (int i = 0; i < Nb; ++i) {
+    convolution_layer(((*synapse)[i]),
+                      ((*neuron_i)[i]),
+                      ((*neuron_n)[i]));
+    cout << "simple: " << i << "\n";
+  }
+
+
   //end_roi(Convolution, 0);
 
-  // cout << "simple version complete!\n";  
+  cout << "simple version complete!\n";  
 
   dim3 dimGrid(NUM_BLOCKS_Y, NUM_BLOCKS_X, NUM_BLOCKS_Z);
   dim3 dimThread(NUM_THREADS_Y, NUM_THREADS_X, NUM_THREADS_Z);
 
   //Blocked Version
   begin_roi();
-  convolution_layer_blocked<<<dimGrid, dimThread>>>(d_synapse, d_neuron_i, d_neuron_n);
+
+  if (CONCURRENT) {
+    for (int i = 0; i < Nb; ++i)
+      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[i*Ky*Kx*Nn*Ni]), 
+                                                        &(d_neuron_i[i*NYPAD*NXPAD*Nn]), 
+                                                        &(d_neuron_n[i*NYSCL*NXSCL*Nn]));
+  }
+  else {
+    for (int i = 0; i < Nb; ++i) {
+      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[i*Ky*Kx*Nn*Ni]), 
+                                                        &(d_neuron_i[i*NYPAD*NXPAD*Nn]), 
+                                                        &(d_neuron_n[i*NYSCL*NXSCL*Nn]));
+      cudaDeviceSynchronize();
+    }
+  }
+
   cudaDeviceSynchronize();
   end_roi(Convolution, 1);
 
@@ -216,8 +249,10 @@ int main(const int argc, const char** argv) {
     cout << "Failed to launch classifier_layer_blocked kernel" << endl;
     exit(1);
   }
+
+  cout << "here\n";
   
-  err = cudaMemcpy(neuron_n2, d_neuron_n, NYSCL*NXSCL*Nn*sizeof(VTYPE), cudaMemcpyDeviceToHost);
+  err = cudaMemcpy(neuron_n2, d_neuron_n, Nb*NYSCL*NXSCL*Nn*sizeof(VTYPE), cudaMemcpyDeviceToHost);
   if (err != cudaSuccess) {
     cout << "Failed to copy d_neuron_n from device to host" << endl;
     cout << cudaGetErrorString(err) << endl;
@@ -226,7 +261,7 @@ int main(const int argc, const char** argv) {
 
   cout << "blocked computation complete!\n";  
 
-  compare((VTYPE*)*neuron_n,(VTYPE*)*neuron_n2,NYSCL*NXSCL*Nn, Convolution, 1);
+  compare((VTYPE*)*neuron_n,(VTYPE*)*neuron_n2, Nb*NYSCL*NXSCL*Nn, Convolution, 1);
 
   cout << "compare done" << endl;
 

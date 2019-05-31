@@ -14,6 +14,7 @@
   #define Ky 1
   #define Nx 1
   #define Ny 1
+  #define Nb 1
   #define NYPAD 1
   #define NXPAD 1
 #endif
@@ -73,7 +74,7 @@ void compare(VTYPE* neuron1, VTYPE* neuron2, int size, ProbType p, int blocked) 
     else if (p == Convolution){
       float nxpad = Nx;
       float nypad = Ny;
-      gflops = nxpad * nypad * Nn * Ni * Ky * Kx * 2/ (usec * 1000);
+      gflops = nxpad * nypad * Nb * Nn * Ni * Ky * Kx * 2/ (usec * 1000);
     }
     std::cout << "GFlops (MAC=2) " << blocked << ": " << gflops << "\n";
     std::cout << "GFlops (MAC=1) " << blocked << ": " << gflops/2 << "\n";
