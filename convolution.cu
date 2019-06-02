@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstdlib>
 #include "dnn.hpp"
 
 #include "helper_cuda.h"
@@ -224,20 +225,36 @@ int main(const int argc, const char** argv) {
   dim3 dimGrid(NUM_BLOCKS_Y, NUM_BLOCKS_X, NUM_BLOCKS_Z);
   dim3 dimThread(NUM_THREADS_Y, NUM_THREADS_X, NUM_THREADS_Z);
 
+  // randomize the order of the batches
+  int order[Nb];
+  for (int i = 0; i < Nb; ++i) {
+    order[i] = i;
+  }
+  for (int i=0; i<Nb; i++) {
+    int r = rand() % Nb;
+    int temp = order[i];
+    order[i] = order[r];
+    order[r] = temp;
+  }
+  for (int i = 0; i < Nb; ++i) {
+    cout << order[i] << " ";
+  }
+  cout << "\n";
+
   //Blocked Version
   begin_roi();
 
   if (CONCURRENT) {
     for (int i = 0; i < Nb; ++i)
-      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[i*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[i*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[i*NYSCL*NXSCL*Nn]));
+      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[order[i]*Ky*Kx*Nn*Ni]), 
+                                                        &(d_neuron_i[order[i]*NYPAD*NXPAD*Nn]), 
+                                                        &(d_neuron_n[order[i]*NYSCL*NXSCL*Nn]));
   }
   else {
     for (int i = 0; i < Nb; ++i) {
-      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[i*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[i*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[i*NYSCL*NXSCL*Nn]));
+      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[order[i]*Ky*Kx*Nn*Ni]), 
+                                                        &(d_neuron_i[order[i]*NYPAD*NXPAD*Nn]), 
+                                                        &(d_neuron_n[order[i]*NYSCL*NXSCL*Nn]));
       cudaDeviceSynchronize();
     }
   }
