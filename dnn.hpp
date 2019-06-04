@@ -11,11 +11,23 @@
 
 #ifndef Kx
   #define Kx 1
+#endif
+#ifndef Ky
   #define Ky 1
+#endif
+#ifndef Nx
   #define Nx 1
+#endif
+#ifndef Ny
   #define Ny 1
+#endif
+#ifndef Nb
   #define Nb 1
+#endif
+#ifndef NYPAD
   #define NYPAD 1
+#endif
+#ifndef NXPAD
   #define NXPAD 1
 #endif
 
