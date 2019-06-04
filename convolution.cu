@@ -126,7 +126,24 @@ void convolution_layer_blocked(
   }
 }
 
-void  convolution_layer(VTYPE (&synapse)[Ky][Kx][Ni][Nn], 
+__global__
+void classifier_layer_blocked(const VTYPE *synapse, const VTYPE *neuron_i, 
+                              VTYPE *neuron_n) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+                          
+  for (int n = idx*(Nn/(NUM_THREADS*NUM_BLOCKS)); n < (idx+1)*(Nn/(NUM_THREADS*NUM_BLOCKS)); n+=8) {
+    VTYPE temp_0=0;
+
+    for (int i = 0; i < Ni; i+=Ti) {
+      for (int ii = 0; ii < Ti; ++ii){
+        temp_0 += Synapse(n+0, i+ii) * neuron_i[i+ii];
+      }
+    }
+    neuron_n[n+0] = temp_0 > 0 ? temp_0 : temp_0/4;
+  }
+}
+
+void convolution_layer(VTYPE (&synapse)[Ky][Kx][Ni][Nn], 
                                VTYPE (&neuron_i)[NYPAD][NXPAD][Ni], 
                                VTYPE (&neuron_n)[NYSCL][NXSCL][Nn]) {
   VTYPE sum[Nn]={0};
