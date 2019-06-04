@@ -23,6 +23,8 @@ for i in ${ni[@]}
 do
     for j in ${nn[@]}
     do
+        echo "IN$i,OUT$j" >> seq-batch-res-class.csv
+        echo "IN$i,OUT$j" >> conc-batch-res-class.csv
         for k in ${nb[@]}
         do
             rm ./opt-class1 || true
@@ -37,8 +39,8 @@ do
 
             if [ $PERF -gt 0 ] && [ $PERF -lt 6000 ]
             then
-                echo "NN: $j NI: $i NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
-                echo "$EXEC_TIME,$PERF2,$j,$i,$k" >> seq-batch-res-class.csv
+                echo "NI: $i NN: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
+                echo "$EXEC_TIME,$PERF2,$i,$j,$k" >> seq-batch-res-class.csv
             fi
 
             rm ./opt-class1c || true
@@ -53,8 +55,8 @@ do
 
             if [ $PERF -gt 0 ] && [ $PERF -lt 6000 ]
             then
-                echo "NN: $j NI: $i NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
-                echo "$EXEC_TIME,$PERF2,$j,$i,$k" >> conc-batch-res-class.csv
+                echo "NI: $i NN: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
+                echo "$EXEC_TIME,$PERF2,$i,$j,$k" >> conc-batch-res-class.csv
             fi
 
             if [ $PERF -gt $MAX_PERF ] && [ $PERF -lt 6000 ]
