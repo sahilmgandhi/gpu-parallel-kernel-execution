@@ -45,9 +45,16 @@ using namespace std;
 #define Neuron_n(n) neuron_n[n]
 
 //Arrays:
-VTYPE synapse[Nb][Nn][Ni] __attribute__((aligned(64)));
-VTYPE neuron_i[Nb][Ni] __attribute__((aligned(64)));
-VTYPE neuron_n[Nb][Nn] __attribute__((aligned(64))),    neuron_n2[Nb][Nn] __attribute__((aligned(64)));
+VTYPE (*synapse)[Nb][Nn][Ni];
+
+VTYPE (*neuron_i)[Nb][Ni];
+VTYPE (*neuron_n)[Nb][Nn];
+VTYPE (*neuron_n2)[Nb][Nn];
+
+
+// VTYPE synapse[Nb][Nn][Ni] __attribute__((aligned(64)));
+// VTYPE neuron_i[Nb][Ni] __attribute__((aligned(64)));
+// VTYPE neuron_n[Nb][Nn] __attribute__((aligned(64))),    neuron_n2[Nb][Nn] __attribute__((aligned(64)));
 
 void fill_classifier(VTYPE (&synapse)[Nb][Nn][Ni], VTYPE (&neuron_i)[Nb][Ni], 
     VTYPE (&neuron_n)[Nb][Nn],   VTYPE (&neuron_n2)[Nb][Nn]) {
@@ -101,13 +108,19 @@ void classifier_layer_blocked(const VTYPE *synapse, const VTYPE *neuron_i,
 
 int main(int argc, char** argv) {
 
+  synapse   = (VTYPE (*)[Nb][Nn][Ni]) aligned_malloc(64,Nb*Nn*Ni*sizeof(VTYPE));
+  neuron_i  = (VTYPE (*)[Nb][Ni]) aligned_malloc(64,Nb*Ni*sizeof(VTYPE));
+  neuron_n  = (VTYPE (*)[Nb][Nn]) aligned_malloc(64,Nb*Nn*sizeof(VTYPE));
+  neuron_n2 = (VTYPE (*)[Nb][Nn]) aligned_malloc(64,Nb*Nn*sizeof(VTYPE));
+
+
   // Error code to check return values for CUDA calls
   cudaError_t err = cudaSuccess;
 
 
   // Initialize arrays for run
   cout << "initializing arrays\n";
-  fill_classifier(synapse,neuron_i,neuron_n,neuron_n2);
+  fill_classifier(*synapse,*neuron_i,*neuron_n,*neuron_n2);
 
 
   // Allocate and copy to Device arrays
@@ -145,9 +158,9 @@ int main(int argc, char** argv) {
 
   // Perform and time simple run
   // begin_roi();
-  for (int i = 0; i < Nb; i++) {
-    classifier_layer(synapse[i],neuron_i[i],neuron_n[i]);
-  }
+  // for (int i = 0; i < Nb; i++) {
+  //   classifier_layer(synapse[i],neuron_i[i],neuron_n[i]);
+  // }
   // end_roi(Classifier, 0);
 
   cout << "simple version complete!\n";
