@@ -35,7 +35,7 @@ using namespace std;
 // #define NUM_THREADS Tii
 // #define NUM_BLOCKS Tn
 
-#define NUM_THREADS Tii
+#define NUM_THREADS 32
 // #define NUM_BLOCKS 256
 #define NUM_BLOCKS (Nn/NUM_THREADS)
 
@@ -221,8 +221,8 @@ int main(int argc, char** argv) {
   }
 
   // Compare results
-  for (int i = 0; i < Nb; i++)
-    compare(neuron_n[i],neuron_n2[i], Nn, Classifier, 1);
+  // compare(&neuron_n[0][0],&neuron_n2[0][0], Nb*Nn, Classifier, 1);
+  compare2(Classifier, 1);
   cout << "compare done" << endl;
 
 
