@@ -43,6 +43,22 @@ VTYPE transfer(VTYPE i) {
   return (i>0) ? i : i/4;
 }
 
+void compare2(ProbType p, int blocked){
+  std::cout << "elapsed (sec): " << usec/1000000.0 << "\n";
+
+    float gflops = 0;
+    if (p == Classifier){
+      gflops = float(Nn) * Ni * 2/ (usec * 1000); 
+    }
+    else if (p == Convolution){
+      float nxpad = Nx;
+      float nypad = Ny;
+      gflops = nxpad * nypad * Nb * Nn * Ni * Ky * Kx * 2/ (usec * 1000);
+    }
+    std::cout << "GFlops (MAC=2) " << blocked << ": " << gflops << "\n";
+    // std::cout << "GFlops (MAC=1) " << blocked << ": " << gflops/2 << "\n";
+}
+
 void compare(VTYPE* neuron1, VTYPE* neuron2, int size, ProbType p, int blocked) {
   bool error = false;
   for(int i = 0; i < size; ++i) {

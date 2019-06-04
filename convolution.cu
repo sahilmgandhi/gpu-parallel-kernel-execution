@@ -53,7 +53,7 @@ using namespace std;
   // #define NUM_BLOCKS_X (Nx/NUM_THREADS_X)
 
   // conv1 is 4, conv2 is 8
-  #define NUM_THREADS_Z 32
+  #define NUM_THREADS_Z 16
 
 #endif
 
@@ -94,142 +94,6 @@ void fill_convolution_shared_simple(VTYPE (&synapse)[Nb][Ky][Kx][Ni][Nn],
 
 __global__
 void convolution_layer_blocked(
-                              const VTYPE *synapse, 
-                              const VTYPE *neuron_i, 
-                              VTYPE *neuron_n) {
-
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int idy = blockIdx.y * blockDim.y + threadIdx.y;
-  int idn = blockIdx.z * blockDim.z + threadIdx.z;
-
-  const int ySize = Ny/(NUM_THREADS_Y*NUM_BLOCKS_Y); 
-  const int xSize = Nx/(NUM_THREADS_X*NUM_BLOCKS_X);
-  const int nSize = NUM_THREADS_Z;
-  
-  __shared__ VTYPE sum[NUM_THREADS_Z];
-
-  for (int y = idx*ySize; y < (idx+1)*ySize; ++y) { // tiling for y;
-
-    for (int x = idy*xSize; x < (idy+1)*xSize; ++x) { // tiling for x;
-      int n = idn;
-      sum[n % nSize]=0;
-      // sliding window;
-      for (int ky = 0; ky < Ky; ++ky)
-        for (int kx = 0; kx < Kx; ++kx)
-          for (int i = 0; i < Ni; ++i) {
-            VTYPE sv = Synapse(ky, kx, i, n);
-            VTYPE nv = Neuron_i(ky + y, kx + x, i);
-            sum[n % nSize] += sv*nv;
-          }
-        Neuron_n(y, x, n) = sum[n% nSize] > 0 ? sum[n% nSize] : sum[n% nSize]/4;
-    }
-  }
-}
-
-__global__
-void convolution_layer_blocked1(
-                              const VTYPE *synapse, 
-                              const VTYPE *neuron_i, 
-                              VTYPE *neuron_n) {
-
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int idy = blockIdx.y * blockDim.y + threadIdx.y;
-  int idn = blockIdx.z * blockDim.z + threadIdx.z;
-
-  const int ySize = Ny/(NUM_THREADS_Y*NUM_BLOCKS_Y); 
-  const int xSize = Nx/(NUM_THREADS_X*NUM_BLOCKS_X);
-  const int nSize = NUM_THREADS_Z;
-  
-  __shared__ VTYPE sum[NUM_THREADS_Z];
-
-  for (int y = idx*ySize; y < (idx+1)*ySize; ++y) { // tiling for y;
-
-    for (int x = idy*xSize; x < (idy+1)*xSize; ++x) { // tiling for x;
-      int n = idn;
-      sum[n % nSize]=0;
-      // sliding window;
-      for (int ky = 0; ky < Ky; ++ky)
-        for (int kx = 0; kx < Kx; ++kx)
-          for (int i = 0; i < Ni; ++i) {
-            VTYPE sv = Synapse(ky, kx, i, n);
-            VTYPE nv = Neuron_i(ky + y, kx + x, i);
-            sum[n % nSize] += sv*nv;
-          }
-        Neuron_n(y, x, n) = sum[n% nSize] > 0 ? sum[n% nSize] : sum[n% nSize]/4;
-    }
-  }
-}
-
-__global__
-void convolution_layer_blocked2(
-                              const VTYPE *synapse, 
-                              const VTYPE *neuron_i, 
-                              VTYPE *neuron_n) {
-
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int idy = blockIdx.y * blockDim.y + threadIdx.y;
-  int idn = blockIdx.z * blockDim.z + threadIdx.z;
-
-  const int ySize = Ny/(NUM_THREADS_Y*NUM_BLOCKS_Y); 
-  const int xSize = Nx/(NUM_THREADS_X*NUM_BLOCKS_X);
-  const int nSize = NUM_THREADS_Z;
-  
-  __shared__ VTYPE sum[NUM_THREADS_Z];
-
-  for (int y = idx*ySize; y < (idx+1)*ySize; ++y) { // tiling for y;
-
-    for (int x = idy*xSize; x < (idy+1)*xSize; ++x) { // tiling for x;
-      int n = idn;
-      sum[n % nSize]=0;
-      // sliding window;
-      for (int ky = 0; ky < Ky; ++ky)
-        for (int kx = 0; kx < Kx; ++kx)
-          for (int i = 0; i < Ni; ++i) {
-            VTYPE sv = Synapse(ky, kx, i, n);
-            VTYPE nv = Neuron_i(ky + y, kx + x, i);
-            sum[n % nSize] += sv*nv;
-          }
-        Neuron_n(y, x, n) = sum[n% nSize] > 0 ? sum[n% nSize] : sum[n% nSize]/4;
-    }
-  }
-}
-
-__global__
-void convolution_layer_blocked3(
-                              const VTYPE *synapse, 
-                              const VTYPE *neuron_i, 
-                              VTYPE *neuron_n) {
-
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int idy = blockIdx.y * blockDim.y + threadIdx.y;
-  int idn = blockIdx.z * blockDim.z + threadIdx.z;
-
-  const int ySize = Ny/(NUM_THREADS_Y*NUM_BLOCKS_Y); 
-  const int xSize = Nx/(NUM_THREADS_X*NUM_BLOCKS_X);
-  const int nSize = NUM_THREADS_Z;
-  
-  __shared__ VTYPE sum[NUM_THREADS_Z];
-
-  for (int y = idx*ySize; y < (idx+1)*ySize; ++y) { // tiling for y;
-
-    for (int x = idy*xSize; x < (idy+1)*xSize; ++x) { // tiling for x;
-      int n = idn;
-      sum[n % nSize]=0;
-      // sliding window;
-      for (int ky = 0; ky < Ky; ++ky)
-        for (int kx = 0; kx < Kx; ++kx)
-          for (int i = 0; i < Ni; ++i) {
-            VTYPE sv = Synapse(ky, kx, i, n);
-            VTYPE nv = Neuron_i(ky + y, kx + x, i);
-            sum[n % nSize] += sv*nv;
-          }
-        Neuron_n(y, x, n) = sum[n% nSize] > 0 ? sum[n% nSize] : sum[n% nSize]/4;
-    }
-  }
-}
-
-__global__
-void convolution_layer_blocked4(
                               const VTYPE *synapse, 
                               const VTYPE *neuron_i, 
                               VTYPE *neuron_n) {
@@ -343,16 +207,20 @@ int main(const int argc, const char** argv) {
 
   cout << "starting computation\n";
 
-  //Simple Version
-  //begin_roi();
+  // for (int i = 0; i < Nb; ++i) {
+  //   convolution_layer(((*synapse)[i]),
+  //                     ((*neuron_i)[i]),
+  //                     ((*neuron_n)[i]));
+  //   cout << "simple: " << i << "\n";
+  // }
 
-  for (int i = 0; i < Nb; ++i) {
-    convolution_layer(((*synapse)[i]),
-                      ((*neuron_i)[i]),
-                      ((*neuron_n)[i]));
-    cout << "simple: " << i << "\n";
+  int nstreams = Nb;
+  // allocate and initialize an array of stream handles
+  cudaStream_t *streams = (cudaStream_t *) malloc(nstreams * sizeof(cudaStream_t));
+  for (int i = 0; i < nstreams; i++)
+  {
+    checkCudaErrors(cudaStreamCreate(&(streams[i])));
   }
-
 
   //end_roi(Convolution, 0);
 
@@ -380,58 +248,22 @@ int main(const int argc, const char** argv) {
   //Blocked Version
   begin_roi();
 
-  if (CONCURRENT) {
-    for (int i = 0; i < Nb; i+=5) {
+  if (!CONCURRENT) {
+    for (int i = 0; i < Nb; ++i) {
       convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[order[i]*Ky*Kx*Nn*Ni]), 
                                                         &(d_neuron_i[order[i]*NYPAD*NXPAD*Nn]), 
                                                         &(d_neuron_n[order[i]*NYSCL*NXSCL*Nn]));
-
-      convolution_layer_blocked1<<<dimGrid, dimThread>>>(&(d_synapse[order[i+1]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+1]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+1]*NYSCL*NXSCL*Nn]));
-
-      convolution_layer_blocked2<<<dimGrid, dimThread>>>(&(d_synapse[order[i+2]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+2]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+2]*NYSCL*NXSCL*Nn]));
-
-      convolution_layer_blocked3<<<dimGrid, dimThread>>>(&(d_synapse[order[i+3]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+3]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+3]*NYSCL*NXSCL*Nn]));
-
-      convolution_layer_blocked4<<<dimGrid, dimThread>>>(&(d_synapse[order[i+4]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+4]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+4]*NYSCL*NXSCL*Nn]));
-    }
-    cout << "con\n";
-  }
-  else {
-    for (int i = 0; i < Nb; i+=5) {
-      convolution_layer_blocked<<<dimGrid, dimThread>>>(&(d_synapse[order[i]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i]*NYSCL*NXSCL*Nn]));
-      cudaDeviceSynchronize();
-
-      convolution_layer_blocked1<<<dimGrid, dimThread>>>(&(d_synapse[order[i+1]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+1]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+1]*NYSCL*NXSCL*Nn]));
-      cudaDeviceSynchronize();
-
-      convolution_layer_blocked2<<<dimGrid, dimThread>>>(&(d_synapse[order[i+2]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+2]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+2]*NYSCL*NXSCL*Nn]));
-      cudaDeviceSynchronize();
-
-      convolution_layer_blocked3<<<dimGrid, dimThread>>>(&(d_synapse[order[i+3]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+3]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+3]*NYSCL*NXSCL*Nn]));
-      cudaDeviceSynchronize();
-
-      convolution_layer_blocked4<<<dimGrid, dimThread>>>(&(d_synapse[order[i+4]*Ky*Kx*Nn*Ni]), 
-                                                        &(d_neuron_i[order[i+4]*NYPAD*NXPAD*Nn]), 
-                                                        &(d_neuron_n[order[i+4]*NYSCL*NXSCL*Nn]));
       cudaDeviceSynchronize();
     }
     cout << "seq\n";
+  }
+  else {
+    for (int i = 0; i < Nb; i++) {
+      convolution_layer_blocked<<<dimGrid, dimThread, 256, streams[i]>>>(&(d_synapse[order[i]*Ky*Kx*Nn*Ni]), 
+                                                        &(d_neuron_i[order[i]*NYPAD*NXPAD*Nn]), 
+                                                        &(d_neuron_n[order[i]*NYSCL*NXSCL*Nn]));
+    }
+    cout << "con\n";
   }
 
   cudaDeviceSynchronize();
@@ -453,10 +285,12 @@ int main(const int argc, const char** argv) {
 
   cout << "blocked computation complete!\n";  
 
-  compare((VTYPE*)*neuron_n,(VTYPE*)*neuron_n2, Nb*NYSCL*NXSCL*Nn, Convolution, 1);
+  // compare((VTYPE*)*neuron_n,(VTYPE*)*neuron_n2, Nb*NYSCL*NXSCL*Nn, Convolution, 1);
+  compare2(Convolution, 1);
 
   cout << "compare done" << endl;
 
+  free(streams);
 
   // Free device memory
   err = cudaFree(d_synapse);
@@ -480,5 +314,4 @@ int main(const int argc, const char** argv) {
   cout << "done\n";
   return 0;
 }
-
 
