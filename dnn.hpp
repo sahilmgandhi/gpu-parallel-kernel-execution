@@ -60,7 +60,7 @@ void compare2(ProbType p, int blocked){
 
     float gflops = 0;
     if (p == Classifier){
-      gflops = float(Nn) * Ni * 2/ (usec * 1000); 
+      gflops = float(Nn) * Ni * 2 * Nb / (usec * 1000); 
     }
     else if (p == Convolution){
       float nxpad = Nx;
@@ -97,7 +97,7 @@ void compare(VTYPE* neuron1, VTYPE* neuron2, int size, ProbType p, int blocked) 
 
     float gflops = 0;
     if (p == Classifier){
-      gflops = float(Nn) * Ni * 2/ (usec * 1000); 
+      gflops = float(Nn) * Ni * 2 * Nb / (usec * 1000); 
     }
     else if (p == Convolution){
       float nxpad = Nx;
