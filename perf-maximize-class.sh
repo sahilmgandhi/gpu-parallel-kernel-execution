@@ -23,8 +23,8 @@ for i in ${ni[@]}
 do
     for j in ${nn[@]}
     do
-        echo "IN$i,OUT$j,,,BATCH" >> seq-batch-res-class.csv
-        echo "IN$i,OUT$j,,,BATCH" >> conc-batch-res-class.csv
+        echo "IN${i}OUT${j},IN${i}OUT${j},,,BATCH" >> seq-batch-res-class.csv
+        echo "IN${i}OUT${j},IN${i}OUT${j},,,BATCH" >> conc-batch-res-class.csv
         for k in ${nb[@]}
         do
             rm ./opt-class1 || true
