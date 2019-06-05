@@ -262,7 +262,7 @@ int main(const int argc, const char** argv) {
                                                         &(d_neuron_i[order[i]*NYPAD*NXPAD*Nn]), 
                                                         &(d_neuron_n[order[i]*NYSCL*NXSCL*Nn]));
     }
-    cout << "con\n";
+    cout << "conc\n";
   }
 
   cudaDeviceSynchronize();

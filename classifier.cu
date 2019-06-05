@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
                                                         &(d_neuron_i[order[i]*Ni]), 
                                                         &(d_neuron_n[order[i]*Nn]));
     }
-    cout << "con\n";
+    cout << "conc\n";
   }
 
   cudaDeviceSynchronize();
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
   compare2(Classifier, 1);
   cout << "compare done" << endl;
 
-
+  free(streams);
   // Free device memory
   err = cudaFree(d_synapse);
   if (err != cudaSuccess) {

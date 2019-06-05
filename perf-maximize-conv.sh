@@ -37,7 +37,7 @@ do
             PERF2=$PERF # floating point form
             PERF=$((`printf %.0f $PERF`))
 
-            if [ $PERF -gt 0 ] && [ $PERF -lt 8000 ]
+            if [ $PERF -ge 0 ] && [ $PERF -le 8000 ]
             then
                 echo "Sequential: NX: $i NY: $i NN: $j NI: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
                 echo "$EXEC_TIME,$PERF2,$i,$i,$j,$j,$k" >> seq-batch-res.csv
@@ -53,13 +53,13 @@ do
             PERF2=$PERF # floating point form
             PERF=$((`printf %.0f $PERF`))
 
-            if [ $PERF -gt 0 ] && [ $PERF -lt 8000 ]
+            if [ $PERF -ge 0 ] && [ $PERF -le 8000 ]
             then
                 echo "Concurrent: NX: $i NY: $i NN: $j NI: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
                 echo "$EXEC_TIME,$PERF2,$i,$i,$j,$j,$k" >> conc-batch-res.csv
             fi
 
-            if [ $PERF -gt $MAX_PERF ] && [ $PERF -lt 8000 ]
+            if [ $PERF -ge $MAX_PERF ] && [ $PERF -le 8000 ]
             then
                 MAX_PERF=$PERF
                 MAX_PARAMS="NX: $i NY: $i NN: $j NI: $j NB: $k"

@@ -2,9 +2,9 @@
 
 # class1
 
-ni=(512 1024 2048 4096 12544)
-nn=(4096)
-nb=(1 2 4 6 8 10 12 14 16 18 20)
+ni=(256 512 1024 2048 4096 12544)
+nn=(64 128 256 512 1024 2048 4096)
+nb=(1 2 4 6 8 10 12 14 16 18 20 30 40 50 60)
 
 MAX_PARAMS=""
 MAX_PERF=0
@@ -23,8 +23,8 @@ for i in ${ni[@]}
 do
     for j in ${nn[@]}
     do
-        echo "IN$i,OUT$j" >> seq-batch-res-class.csv
-        echo "IN$i,OUT$j" >> conc-batch-res-class.csv
+        echo "IN$i,OUT$j,,,BATCH" >> seq-batch-res-class.csv
+        echo "IN$i,OUT$j,,,BATCH" >> conc-batch-res-class.csv
         for k in ${nb[@]}
         do
             rm ./opt-class1 || true
@@ -37,9 +37,9 @@ do
             PERF2=$PERF # floating point form
             PERF=$((`printf %.0f $PERF`))
 
-            if [ $PERF -gt 0 ] && [ $PERF -lt 6000 ]
+            if [ $PERF -ge 0 ] && [ $PERF -le 6000 ]
             then
-                echo "NI: $i NN: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
+                echo "Sequential: NI: $i NN: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
                 echo "$EXEC_TIME,$PERF2,$i,$j,$k" >> seq-batch-res-class.csv
             fi
 
@@ -53,13 +53,13 @@ do
             PERF2=$PERF # floating point form
             PERF=$((`printf %.0f $PERF`))
 
-            if [ $PERF -gt 0 ] && [ $PERF -lt 6000 ]
+            if [ $PERF -ge 0 ] && [ $PERF -le 6000 ]
             then
-                echo "NI: $i NN: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
+                echo "Concurrent: NI: $i NN: $j NB: $k => $PERF GFlops ||| Max: $MAX_PERF GFlops w/ $MAX_PARAMS"
                 echo "$EXEC_TIME,$PERF2,$i,$j,$k" >> conc-batch-res-class.csv
             fi
 
-            if [ $PERF -gt $MAX_PERF ] && [ $PERF -lt 6000 ]
+            if [ $PERF -ge $MAX_PERF ] && [ $PERF -le 6000 ]
             then
                 MAX_PERF=$PERF
                 MAX_PARAMS="NN: $j NI: $i NB: $k"
@@ -71,16 +71,3 @@ done
 echo
 echo "MAX PERF => $MAX_PERF GFlops"
 echo "MAX_PARAMS => $MAX_PARAMS"
-
-
-
-# # Example sed/grep commands
-
-# cat write-profiling.txt | grep "dram_write_throughput" | sed -r "s/.*dram_write_throughput[A-Za-z ]*?([0-9]+\.[0-9]*)(KB\/s|MB\/s|GB\/s).*/\1\2/"
-# cat write-profiling.txt | grep "dram_write_transactions" | sed -r "s/.*dram_write_transactions[A-Za-z ]*?([0-9]+).*/\1/"
-# cat write-profiling.txt | grep "sysmem_write_throughput" | sed -r "s/.*sysmem_write_throughput[A-Za-z ]*?([0-9]+\.[0-9]*)(KB\/s|MB\/s|GB\/s).*/\1\2/"
-# cat write-profiling.txt | grep "sysmem_write_transactions" | sed -r "s/.*sysmem_write_transactions[A-Za-z ]*?([0-9]+).*/\1/"
-
-# cat read-profiling.txt | grep "dram_read_throughput" | sed -r "s/.*dram_read_throughput[A-Za-z ]*?([0-9]+\.[0-9]*)(KB\/s|MB\/s|GB\/s).*/\1\2/"
-# cat read-profiling.txt | grep "dram_read_transactions" | sed -r "s/.*dram_read_transactions[A-Za-z ]*?([0-9]+).*/\1/"
-# cat read-profiling.txt | grep "l2_tex_read_transactions" | sed -r "s/.*\(Texture Reads\)[A-Za-z ]*?([0-9]+).*/\1/"
