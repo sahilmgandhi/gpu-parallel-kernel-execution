@@ -31,6 +31,9 @@ do
 		do
             rm ./opt-conv2 || true
             make opt-conv2 NX_PARAM=${i} NY_PARAM=${i} NN_PARAM=${j} NI_PARAM=${j} NUM_BATCHES=${k} 2>&1 >> /dev/null
+            
+            ./opt-conv2 2>&1 >> /dev/null
+            ./opt-conv2 2>&1 >> /dev/null
 
             OUT=`./opt-conv2` 
             PERF=`echo $OUT | grep "GFlops (MAC=2) 1:" | sed -e 's/.*GFlops (MAC=2) 1: \(.*\) c.*/\1/'`
@@ -48,6 +51,9 @@ do
             rm ./opt-conv2c || true
             make opt-conv2c NX_PARAM=${i} NY_PARAM=${i} NN_PARAM=${j} NI_PARAM=${j} NUM_BATCHES=${k} 2>&1 >> /dev/null
 
+            ./opt-conv2c 2>&1 >> /dev/null
+            ./opt-conv2c 2>&1 >> /dev/null
+            
             OUT=`./opt-conv2c` 
             PERF=`echo $OUT | grep "GFlops (MAC=2) 1:" | sed -e 's/.*GFlops (MAC=2) 1: \(.*\) c.*/\1/'`
             EXEC_TIME=`echo $OUT | grep "elapsed (sec):" | sed -e 's/.*elapsed (sec): \(.*\) G.*c.*/\1/'`

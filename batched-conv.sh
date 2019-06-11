@@ -27,6 +27,8 @@ do
             rm ./opt-conv-batched || true
             make opt-conv-batched NX_PARAM=${i} NY_PARAM=${i} NN_PARAM=${j} NI_PARAM=${j} NUM_BATCHES=${k} 2>&1 >> /dev/null
 
+            ./opt-conv-batched 2>&1 >> /dev/null
+            ./opt-conv-batched 2>&1 >> /dev/null
             OUT=`./opt-conv-batched` 
             PERF=`echo $OUT | grep "GFlops (MAC=2) 1:" | sed -e 's/.*GFlops (MAC=2) 1: \(.*\) c.*/\1/'`
             EXEC_TIME=`echo $OUT | grep "elapsed (sec):" | sed -e 's/.*elapsed (sec): \(.*\) G.*c.*/\1/'`

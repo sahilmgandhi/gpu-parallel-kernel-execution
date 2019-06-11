@@ -30,6 +30,9 @@ do
             rm ./opt-class1 || true
             make opt-class1 NN_PARAM=${j} NI_PARAM=${i} NUM_BATCHES=${k} 2>&1 >> /dev/null
 
+            ./opt-class1 2>&1 >> /dev/null
+            ./opt-class1 2>&1 >> /dev/null
+
             OUT=`./opt-class1` 
             PERF=`echo $OUT | grep "GFlops (MAC=2) 1:" | sed -e 's/.*GFlops (MAC=2) 1: \(.*\) c.*/\1/'`
             EXEC_TIME=`echo $OUT | grep "elapsed (sec):" | sed -e 's/.*elapsed (sec): \(.*\) G.*c.*/\1/'`
@@ -45,6 +48,9 @@ do
 
             rm ./opt-class1c || true
             make opt-class1c NN_PARAM=${j} NI_PARAM=${i} NUM_BATCHES=${k} 2>&1 >> /dev/null
+
+            ./opt-class1c 2>&1 >> /dev/null
+            ./opt-class1c 2>&1 >> /dev/null
 
             OUT=`./opt-class1c` 
             PERF=`echo $OUT | grep "GFlops (MAC=2) 1:" | sed -e 's/.*GFlops (MAC=2) 1: \(.*\) c.*/\1/'`

@@ -22,7 +22,10 @@ do
         do
             rm ./opt-class-batched || true
             make opt-class-batched NN_PARAM=${j} NI_PARAM=${i} NUM_BATCHES=${k} 2>&1 >> /dev/null
-
+            
+            ./opt-class-batched 2>&1 >> /dev/null
+            ./opt-class-batched 2>&1 >> /dev/null
+            
             OUT=`./opt-class-batched` 
             PERF=`echo $OUT | grep "GFlops (MAC=2) 1:" | sed -e 's/.*GFlops (MAC=2) 1: \(.*\) c.*/\1/'`
             EXEC_TIME=`echo $OUT | grep "elapsed (sec):" | sed -e 's/.*elapsed (sec): \(.*\) G.*c.*/\1/'`
