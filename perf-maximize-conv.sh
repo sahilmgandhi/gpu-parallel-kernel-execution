@@ -25,6 +25,8 @@ for i in ${nx[@]}
 do
     for j in ${nn[@]}
     do
+        echo "IN${i}OUT${j},IN${i}OUT${j},,,,,BATCH" >> conc-batch-res.csv
+        echo "IN${i}OUT${j},IN${i}OUT${j},,,,,BATCH" >> seq-batch-res.csv
 		for k in ${nb[@]}
 		do
             rm ./opt-conv1 || true
@@ -65,9 +67,6 @@ do
                 MAX_PARAMS="NX: $i NY: $i NN: $j NI: $j NB: $k"
             fi
 		done
-
-        echo "" >> conc-batch-res.csv
-        echo "" >> seq-batch-res.csv
     done
 done
 

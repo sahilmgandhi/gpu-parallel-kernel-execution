@@ -46,8 +46,6 @@ do
                 MAX_PARAMS="NX: $i NY: $i NN: $j NI: $j NB: $k"
             fi
 		done
-
-        echo "" >> batched-conv.csv
     done
 done
 

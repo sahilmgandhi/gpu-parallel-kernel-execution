@@ -67,9 +67,6 @@ do
                 MAX_PARAMS="NX: $i NY: $i NN: $j NI: $j NB: $k"
             fi
 		done
-
-        echo "" >> conc2-batch-res.csv
-        echo "" >> seq2-batch-res.csv
     done
 done
 
