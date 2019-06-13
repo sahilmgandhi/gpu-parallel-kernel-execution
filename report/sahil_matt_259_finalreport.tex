@@ -103,12 +103,11 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  A clear and well-documented \LaTeX\ document is presented as an
-  article formatted for publication by ACM in a conference proceedings
-  or journal publication. Based on the ``acmart'' document class, this
-  article presents and explains many of the common variations, as well
-  as many of the formatting elements an author may use in the
-  preparation of the documentation of their work.
+
+  While Moore’s law may be slowing down, GPU’s continue to get \textit{considerably} better with each generation. In 2010, Nvidia began to support executing multiple kernels at once (concurrently), initially allowing only 4-16 kernels to be executed concurrently but increasing it to 128 today. Kernels and machine learning problems that used to take up all the resources of a GPU several years ago now only take a fraction of compute power. In this report, we specifically focus on comparing the concurrent execution of kernels to their sequential counterparts to investigate whether the overhead of launching kernels in parallel defeats any performance gains from the concurrency we are exploiting. We also compare these kernels to their batched versions, the industry norm for maximizing performance. 
+  
+  The results that we obtained suggest that concurrent kernel execution can increase performance anywhere from \% to \%, with larger problems seeing larger performance gains. However, the batched kernels beat the performance of even the concurrent kernels from anywhere between \% to \%. Our findings suggest that ultimately while concurrent kernels are a source of performance gains, they are not the best out there, which is why batching is still the industry standard today. The only way that concurrent kernel execution may be used over batching is if different types of problems were mixed together, as batching requires all the batches to be of the 
+
 \end{abstract}
 
 %%
@@ -140,26 +139,26 @@
 </ccs2012>
 \end{CCSXML}
 
-\ccsdesc[500]{Computer systems organization~Embedded systems}
-\ccsdesc[300]{Computer systems organization~Redundancy}
-\ccsdesc{Computer systems organization~Robotics}
-\ccsdesc[100]{Networks~Network reliability}
+% \ccsdesc[500]{Computer systems organization~Embedded systems}
+% \ccsdesc[300]{Computer systems organization~Redundancy}
+% \ccsdesc{Computer systems organization~Robotics}
+% \ccsdesc[100]{Networks~Network reliability}
 
 %%
 %% Keywords. The author(s) should pick words that accurately describe
 %% the work being presented. Separate the keywords with commas.
-\keywords{datasets, neural networks, gaze detection, text tagging}
+% \keywords{datasets, neural networks, gaze detection, text tagging}
 
 %% A "teaser" image appears between the author and affiliation
 %% information and the body of the document, and typically spans the
 %% page.
-\begin{teaserfigure}
-  \includegraphics[width=\textwidth]{sampleteaser}
-  \caption{Seattle Mariners at Spring Training, 2010.}
-  \Description{Enjoying the baseball game from the third-base
-  seats. Ichiro Suzuki preparing to bat.}
-  \label{fig:teaser}
-\end{teaserfigure}
+% \begin{teaserfigure}
+%   \includegraphics[width=\textwidth]{sampleteaser}
+%   \caption{Seattle Mariners at Spring Training, 2010.}
+%   \Description{Enjoying the baseball game from the third-base
+%   seats. Ichiro Suzuki preparing to bat.}
+%   \label{fig:teaser}
+% \end{teaserfigure}
 
 %%
 %% This command processes the author and affiliation and title
@@ -184,7 +183,7 @@ for any ACM publication --- conference or journal, and for any stage
 of publication, from review to final ``camera-ready'' copy, to the
 author's own version, with {\itshape very} few changes to the source.
 
-\section{Template Overview}
+\section{Related Work}
 As noted in the introduction, the ``\verb|acmart|'' document class can
 be used to prepare many different kinds of documentation --- a
 double-blind initial submission of a full-length technical paper, a
@@ -248,7 +247,7 @@ source file:
 \documentclass[sigconf]{acmart}
 \end{verbatim}
 
-\section{Modifications}
+\section{Methods}
 
 Modifying the template --- including but not limited to: adjusting
 margins, typeface sizes, line spacing, paragraph and list definitions,
@@ -258,7 +257,7 @@ vertical spacing between elements of your work --- is not allowed.
 {\bfseries Your document will be returned to you for revision if
   modifications are discovered.}
 
-\section{Typefaces}
+\section{Methodology}
 
 The ``\verb|acmart|'' document class requires the use of the
 ``Libertine'' typeface family. Your \TeX\ installation should include
@@ -266,7 +265,7 @@ this set of packages. Please do not substitute other typefaces. The
 ``\verb|lmodern|'' and ``\verb|ltimes|'' packages should not be used,
 as they will override the built-in typeface families.
 
-\section{Title Information}
+\section{Evaluation}
 
 The title of your work should use capital letters appropriately -
 \url{https://capitalizemytitle.com/} has useful rules for
@@ -281,7 +280,7 @@ command has a ``short title'' parameter:
   \title[short title]{full title}
 \end{verbatim}
 
-\section{Authors and Affiliations}
+\section{Conclusions}
 
 Each author must be defined separately for accurate metadata
 identification. Multiple authors may share one affiliation. Authors'
@@ -316,7 +315,7 @@ The article template's documentation, available at
 complete explanation of these commands and tips for their effective
 use.
 
-\section{Rights Information}
+\section{Statement of Work}
 
 Authors of any work published by ACM will need to complete a rights
 form. Depending on the kind of work, and the rights management choice
