@@ -23,6 +23,10 @@
 %%
 %% The first command in your LaTeX source must be the \documentclass command.
 \documentclass[sigconf]{acmart}
+\usepackage{listings}
+\usepackage[justification=centering]{caption}
+
+\lstset{language=C++,keywordstyle={\bfseries \color{blue}}}
 
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
@@ -38,10 +42,10 @@
 % \setcopyright{acmcopyright}
 \copyrightyear{2019}
 \acmYear{2019}
-\acmDOI{123}
+\acmDOI{PLEASE-DONT-CLICK-ME}
 
 %% These commands are for a PROCEEDINGS abstract or paper.
-\acmConference[CS259 Spring '19]{CS259: Final Project Report}{June 07, 2019}{Los Angeles, CA}
+\acmConference[CS259 Spring '19]{CS259: Final Project Report}{June 13, 2019}{Los Angeles, CA}
 
 %%
 %% Submission ID.
@@ -65,7 +69,6 @@
 %%
 %% end of the preamble, start of the body of the document source.
 \begin{document}
-
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
@@ -105,8 +108,10 @@
 \begin{abstract}
 
   While Moore’s law may be slowing down, GPU’s continue to get \textit{considerably} better with each generation. In 2010, Nvidia began to support executing multiple kernels at once (concurrently), initially allowing only 4-16 kernels to be executed concurrently but increasing it to 128 today. Kernels and machine learning problems that used to take up all the resources of a GPU several years ago now only take a fraction of compute power. In this report, we specifically focus on comparing the concurrent execution of kernels to their sequential counterparts to investigate whether the overhead of launching kernels in parallel defeats any performance gains from the concurrency we are exploiting. We also compare these kernels to their batched versions, the industry norm for maximizing performance. 
-  
-  The results that we obtained suggest that concurrent kernel execution can increase performance anywhere from \% to \%, with larger problems seeing larger performance gains. However, the batched kernels beat the performance of even the concurrent kernels from anywhere between \% to \%. Our findings suggest that ultimately while concurrent kernels are a source of performance gains, they are not the best out there, which is why batching is still the industry standard today. The only way that concurrent kernel execution may be used over batching is if different types of problems were mixed together, as batching requires all the batches to be of the 
+The results that we obtained suggest that concurrent kernel execution can increase performance anywhere from \% to \%, with larger problems seeing larger performance gains. However, the batched kernels beat the performance of even the concurrent kernels from anywhere between \% to \%. Our findings suggest that ultimately while concurrent kernels are a source of performance gains, they are not the best out there, which is why batching is still the industry standard today. The only way that concurrent kernel execution may be used over batching is if different types of problems were mixed together, as batching requires all the batches to be of the same size/type, but heterogeneous kernels can be concurrently executed.
+
+// TODO: Add some concrete numbers here. 
+
 
 \end{abstract}
 
@@ -166,503 +171,242 @@
 \maketitle
 
 \section{Introduction}
-ACM's consolidated article template, introduced in 2017, provides a
-consistent \LaTeX\ style for use across ACM publications, and
-incorporates accessibility and metadata-extraction functionality
-necessary for future Digital Library endeavors. Numerous ACM and
-SIG-specific \LaTeX\ templates have been examined, and their unique
-features incorporated into this single new template.
+As GPUs become more powerful and start packing more cores and SMs, problems that previously used up an entire GPU now only use a fraction of them. Consider the Nvidia Quadro Plex 2200 from four generations ago with 648 cores, the Nvidia M4 GPU from only two generations ago which packed 1024 cores, and the Tesla V100 that has 5120 cores \cite{nvidia_all_gpus}. Every generation nearly doubles the amount of cores that are available, and Nvidia continues to offer other enhancements such as Tensor cores to increase the performance of the graphics cards. 
 
-If you are new to publishing with ACM, this document is a valuable
-guide to the process of preparing your work for publication. If you
-have published with ACM before, this document provides insight and
-instruction into more recent changes to the article template.
+One such enhancement is the ability to concurrently execute kernels, which was introduced in 2010 with the Fermi architecture. Prior to this, kernels had to be queued up sequentially, and only after a kernel had finished all of its computation, would the next one get an opportunity to start. At the start, only 16 kernels could be concurrently executed - though Nvidia profiled that in reality it appeared only 4 were truly concurrent due to hardware issues - today we can expect up to 128 kernels to be concurrently executed. The implications of this technology are that we no longer have to wait for kernels to finish before executing other work on the GPU, which is particularly important if the GPU is not being fully utilized by one kernel or is being shared by different developers/teams. Furthermore, unlike batching where all of the kernels are of the same type or may be sharing data, concurrent kernels can be heterogeneous and work on independent workloads. 
 
-The ``\verb|acmart|'' document class can be used to prepare articles
-for any ACM publication --- conference or journal, and for any stage
-of publication, from review to final ``camera-ready'' copy, to the
-author's own version, with {\itshape very} few changes to the source.
+This report intends to dive deep into the practicality and functionality of using concurrent kernels for some well known kernels such as convolution layers and classification layers. The lack of support and other related works suggests that concurrent kernels may not be as powerful or useful as they seem. However, we want to confirm or reject this notion with our own data, and hope that others can build off of it to parametrize kernels that can be run concurrently and deliver performances that are on par or better than the current industry norm of batching jobs together.  
+
 
 \section{Related Work}
-As noted in the introduction, the ``\verb|acmart|'' document class can
-be used to prepare many different kinds of documentation --- a
-double-blind initial submission of a full-length technical paper, a
-two-page SIGGRAPH Emerging Technologies abstract, a ``camera-ready''
-journal article, a SIGCHI Extended Abstract, and more --- all by
-selecting the appropriate {\itshape template style} and {\itshape
-  template parameters}.
+As aforementioned, Nvidia first introduced the concept of concurrent kernel execution about nine years ago with their Fermi architecture. Their “Streams and Concurrent Webinar” powerpoint from 2010 explains the gist of using them and shows some cases as to when this may be helpful (notably when there are small problems that can be run in parallel to utilize more of the GPU) \cite{nvidia_concurrent}. Since then, there have been some other developments in the research community that have explored topics such as the energy efficiency for concurrent kernels, sharing data between concurrent kernels, the proper ordering of kernels to maximize utilization and more. 
 
-This document will explain the major features of the document
-class. For further information, the {\itshape \LaTeX\ User's Guide} is
-available from
-\url{https://www.acm.org/publications/proceedings-template}.
+\textit{Wang et al.} in 2011 first explored the notion of concurrent kernels and directly compared it to the sequential execution of kernels of varying block/thread sizes \cite{wang_huang_el_ghazawi_2011}. On the Nvidia Fermi architecture which supported 16 concurrent kernels (4 true concurrent kernels), they saw that if they just queued kernels with single blocks, the concurrent kernel implementation delivered anywhere between 10 to 16x better performance, but if they kept a fixed number of kernels and varied the block sizes, the performance between concurrent and sequential kernel execution was approximately the same with concurrent kernels winning only by anywhere between 0 - 20\%.
 
-\subsection{Template Styles}
+\textit{Wende et al.} in 2012 looked into the proper ordering of kernels to maximize performance \cite{wende_cordes_steinke_2012}. They found that by using a producer-consumer model for splitting up their work, they could get anywhere from 5x to 10x improvement to sequential kernels with their concurrent implementation. Furthermore in their experimentation on Fermi Nvidia GPUs, they noticed that as the number of blocks per kernel increased (their GPU had 8 SMs available), their overall performance quickly decreased from a full 16x speedup when each kernel used 1 block to 1.5x speedup when each kernel used 6 or more blocks. This matches the behavior that was observed in \textit{Wang et al.}.
 
-The primary parameter given to the ``\verb|acmart|'' document class is
-the {\itshape template style} which corresponds to the kind of publication
-or SIG publishing the work. This parameter is enclosed in square
-brackets and is a part of the {\verb|documentclass|} command:
-\begin{verbatim}
-  \documentclass[STYLE]{acmart}
-\end{verbatim}
+\textit{Pai et al.} in 2013 worked on the concurrent kernels problem with a newer GPU, the Nvidia Kepler card that had 16 SMs, and also explored using “elastic-kernels”, kernels that were more aware of shared memory and synchronization between kernels \cite{pai_thazhuthaveetil_govindarajan_2013}. They observed that for a specific set of benchmarks, the Parboil 2 suite, an elastic concurrent kernel implementation could outperform a naive concurrent kernel implementation by 3.73x. However, they do not compare it to a regular sequential kernel implementation, so there is no basic benchmark to compare their results to. 
 
-Journals use one of three template styles. All but three ACM journals
-use the {\verb|acmsmall|} template style:
-\begin{itemize}
-\item {\verb|acmsmall|}: The default journal template style.
-\item {\verb|acmlarge|}: Used by JOCCH and TAP.
-\item {\verb|acmtog|}: Used by TOG.
-\end{itemize}
+\textit{Jiao et al.} in 2015 was directed towards improving the energy efficiency of GPUs as in recent years, the TDP required from GPUs has been increasing steadily, with the failure of Dennard Scaling being imminent \cite{jiao_lu_huynh_mitra_2015}. Their trials on a variety of different kernel pairs in from an assortment of benchmarks showed that by using a DVFS (Dynamic Voltage Frequency Scaling) with the concurrent kernel method gave rise to 34.5\% better energy efficiency compared to the best sequential kernel execution method. This suggests that the concurrent kernel execution may indeed have other benefits than merely providing more throughput. 
 
-The majority of conference proceedings documentation will use the {\verb|acmconf|} template style.
-\begin{itemize}
-\item {\verb|acmconf|}: The default proceedings template style.
-\item{\verb|sigchi|}: Used for SIGCHI conference articles.
-\item{\verb|sigchi-a|}: Used for SIGCHI ``Extended Abstract'' articles.
-\item{\verb|sigplan|}: Used for SIGPLAN conference articles.
-\end{itemize}
+\textit{Greg et al.} in 2016 attempted to create a scheduler for two kernels executing concurrently in OpenCL \cite{gregg_dorn_hazelwood_skadron_2016}. While their work is only for two kernels, they have shown that a proper ordering of kernels results in 39\% better performance than a naive ordering, and intend to create a more dynamic scheduler in the future that can support more kernels. 
 
-\subsection{Template Parameters}
-
-In addition to specifying the {\itshape template style} to be used in
-formatting your work, there are a number of {\itshape template parameters}
-which modify some part of the applied template style. A complete list
-of these parameters can be found in the {\itshape \LaTeX\ User's Guide.}
-
-Frequently-used parameters, or combinations of parameters, include:
-\begin{itemize}
-\item {\verb|anonymous,review|}: Suitable for a ``double-blind''
-  conference submission. Anonymizes the work and includes line
-  numbers. Use with the \verb|\acmSubmissionID| command to print the
-  submission's unique ID on each page of the work.
-\item{\verb|authorversion|}: Produces a version of the work suitable
-  for posting by the author.
-\item{\verb|screen|}: Produces colored hyperlinks.
-\end{itemize}
-
-This document uses the following string as the first command in the
-source file:
-\begin{verbatim}
-\documentclass[sigconf]{acmart}
-\end{verbatim}
+There are a couple of patterns that we can observe from the above papers. First, concurrent kernels have not been researched in recent years when GPUs have gotten considerably larger than most non-batched kernel sizes. It is quite possible that today the results could be starkly different than they were in the past. Second, no one has actually compared the performance to batching, which is surprising as it is quite rare for companies to use a GPU for a single convolution or classification problem (perhaps an ASIC instead to minimize latency). We hope to explore this comparison in this report, and present our observations.
 
 \section{Methods}
 
-Modifying the template --- including but not limited to: adjusting
-margins, typeface sizes, line spacing, paragraph and list definitions,
-and the use of the \verb|\vspace| command to manually adjust the
-vertical spacing between elements of your work --- is not allowed.
+After going through the related work and Nvidia documentation/Stackoverflow posts we broke down our design pipeline and workflow as follows. For reference, we are using the Tesla V100 GPU which supports 80 SM that have 64 cores (for a total of 5120 cores), and has Compute 7.0 capability that allows it to run up to 128 concurrent kernels \cite{nvidia_spec}. 
 
-{\bfseries Your document will be returned to you for revision if
-  modifications are discovered.}
+\subsection{Exploring Streams and Concurrent Kernels}
+The first thing we did was to test an initial implementation of concurrent kernels on a simple convolution layer. Since the kernel execution api is asynchronous, we thought that if we just queued up multiple kernels in a row without calling \lstinline{CudaDeviceSynchronize();}, the different kernels would run as soon as the asynchronous call finished. After writing several different kernels and running our profiling script, we saw that there was no difference in the execution time or the performances of the sequential and concurrent kernel implementations. We were shocked as the papers that we read suggested that we should start to see some performance gains (at the very least 1.1x-1.5x), especially if we are now running on a much more powerful GPU that can support many more concurrent kernels. We went back to the drawing board and the sdk examples and came upon the cudaStream api.
+
+Cuda assigns each data source and kernel into a data stream which its scheduler can then queue up to the GPU, transfer the data, and start the computation. There is a certain amount of overhead that occurs here, about 10 us to schedule a kernel and 4 us to execute it \cite{michaelmichael}. By default there is one stream that all kernels are placed within, and only one kernel can run in a stream at a time, so even without that \lstinline{CudaDeviceSynchronize();}, multiple kernels in a row would run sequentially. However multiple streams can be executed concurrently, and if each stream is assigned one or more kernels, then you can have concurrent kernel execution. A code example is given below. 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{img/image1}
+  \caption{Cuda streams API example. Taken from the Nvidia Concurrent Kernel PowerPoint. \cite{nvidia_concurrent}}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{img/image6}
+  \caption{Cuda concurrent kernel execution schedule. Taken from the Nvidia Concurrent Kernel PowerPoint. \cite{nvidia_concurrent}}
+\end{figure}
+
+Furthermore, the order that the streams are queued up is the order in which the kernels are executed, so below we can see that if we have 2 streams with 2 kernels each (ka1/kb1 and ka2/kb2) and if we put Ka1 and Ka2 back-to-back, then both can be simultaneously executed. Kb1/kb2 will be executed after the first kernels finish. 
+
+\subsection{Creating a Set of Kernels	}
+The next step was to create a set of kernels to run concurrently. Since we had a rather large GPU, we figured that we could test a range of kernels of different sizes to see how the concurrent kernels would affect performance. We created two kernels, a convolution layer kernel and a classifier layer kernel. The convolution kernel had 64, 128, and 256 blocks with 1024, 2048 and 4096 threads in total respectively. The classifier kernel had 2,4,8,16,32,64, and 128 blocks with 64, 128, 256, 512, 1024, 2048 and 4096 threads in total respectively. These kernels are all rather large, but we noticed that at any point in time, we would have no more than 10-20\% of the threads actually running at once due to memory access latencies requiring warps to be swapped. Thus we were confident that unlike some of the experiments by \cite{wende_cordes_steinke_2012} where concurrent kernels with more threads resulted in negligible performance gains, we should see some noticeable improvement. 
+
+Furthermore, it is important to note that the blocking, tiling, and shared memory parameters we chose for both of the kernels are not the most optimal. We consciously chose to do this as we cannot expect every engineer to have the most fine tuned kernels in the world, and we were unsure if Cudnn supported a concurrent kernel implementation (to serve as a benchmark). Our convolution kernel was parallelized across three dimensions of threads, and used shared memory. Meanwhile our classifier kernel was parallelized only across one dimension of threads and used tiling heavily. These will be key parameters to keep in mind when we talk about batched kernels in a later section. 
+
+\subsection{Profiling Latency and Throughput}
+
+To calculate the latency and throughput of the kernels, we timed the execution for the computation part of the kernel (we did not time the memory transfers) and calculated the total number of computations ($Nn*Ni*2*Nb$ and $nxpad*nypad*Nb*Nn*Ni*Ky*Kx*2$ for classifier and convolution respectively, where Nb = number of kernels) and divided it by time, respectively. We created a bash script to run through all of the different sizes of kernels and outputted the latency and throughput results to a csv file so that we could graph it. All of the different profiling scripts take about 8-10 hours in total to run, with the convolution ones taking about 1-2 hours each and classifier ones taking 3-4 hours each. We ran the convolution kernels for 1,2,4,6, ... 20 concurrent kernels and the classifier kernels for 1,2,4,6, ... 20, 30, 40, 50, 60 concurrent kernels. 
+
+\subsection{Creating Batched Kernels}
+Finally, we observed that none of the related works compared the concurrent kernel execution performances to the batched kernel variant that is the industry norm today. We thus modified our kernels to support batching. For the classifier kernel, we could just add another dimension of threads and surround the old kernel code with a \lstinline{for} loop to go through the different batches. For the convolution though, we had to move one of the dimensions of threads from being used on the output layer to being used on the \lstinline{for} surrounding the old kernel code. We re-profiled the sequential and concurrent performances for this new convolution kernel to make a fare comparison. Furthermore, we used the same number of batches as concurrent kernels above (1,2,4,6, ... 20 for convolution and 1,2,4,6, ... 20, 30, 40, 50, 60 for classifier).
 
 \section{Methodology}
+To evaluate our work, we took many different kernel sizes and batch-sizes/concurrent-counts, and profiled the latency and throughput for them using our shell scripts. We tried to get a wide range of kernel sizes and kernel counts to see how different workloads would affect the performance. Primarily we were looking to see the point where we would no longer see any improvement with concurrent or batched kernels since the GPU would be fully utilized, and were also trying to observe the diminishing speedup reported by \textit{Wende et al.} when kernels got very large \cite{wende_cordes_steinke_2012}. 
 
-The ``\verb|acmart|'' document class requires the use of the
-``Libertine'' typeface family. Your \TeX\ installation should include
-this set of packages. Please do not substitute other typefaces. The
-``\verb|lmodern|'' and ``\verb|ltimes|'' packages should not be used,
-as they will override the built-in typeface families.
+Due to the two different convolutions that we had to create, we did not have a fair comparison between the concurrent execution for conv1 and the concurrent execution for conv2 since an entire dimension of parallelism was missing from conv2 (since we had to use those threads instead for the batched version of the kernel). Thus the performances for conv2 are significantly lower than those for conv1, and the batched version for conv2 is naturally better than the concurrent or sequential conv2 implementations.
+
+Furthermore, as aforementioned, our classifier and convolution kernels are not the most optimized kernels. We chose to keep them relatively un-optimized since we wanted to observe how different block/thread counts would affect the final performance when running sequentially vs concurrently vs when batched. A fully optimized kernel that used far more of the GPU with a batch size of 1 may not see the same performance gains that we observed for the concurrent/batched runs since there are not many resources left on the GPU to divide amongst more kernels. 
+
+Finally, to make our evaluation a bit more general, we decided to also run our kernels on an Nvidia M60 GPU on the AWS g3s.xlarge instance. This GPU has 16 SMs that we can use, for a total of 1024 cores, so it is about 1/5 the size of the Tesla V100 that we had available from the professor. The results that we got from testing on this GPU are quite different from the V100 GPU results (to say the least), and we will briefly touch on them in the evaluation section below. 
 
 \section{Evaluation}
 
-The title of your work should use capital letters appropriately -
-\url{https://capitalizemytitle.com/} has useful rules for
-capitalization. Use the {\verb|title|} command to define the title of
-your work. If your work has a subtitle, define it with the
-{\verb|subtitle|} command.  Do not insert line breaks in your title.
-
-If your title is lengthy, you must define a short version to be used
-in the page headers, to prevent overlapping text. The \verb|title|
-command has a ``short title'' parameter:
-\begin{verbatim}
-  \title[short title]{full title}
-\end{verbatim}
-
-\section{Conclusions}
-
-Each author must be defined separately for accurate metadata
-identification. Multiple authors may share one affiliation. Authors'
-names should not be abbreviated; use full first names wherever
-possible. Include authors' e-mail addresses whenever possible.
-
-Grouping authors' names or e-mail addresses, or providing an ``e-mail
-alias,'' as shown below, is not acceptable:
-\begin{verbatim}
-  \author{Brooke Aster, David Mehldau}
-  \email{dave,judy,steve@university.edu}
-  \email{firstname.lastname@phillips.org}
-\end{verbatim}
-
-The \verb|authornote| and \verb|authornotemark| commands allow a note
-to apply to multiple authors --- for example, if the first two authors
-of an article contributed equally to the work.
-
-If your author list is lengthy, you must define a shortened version of
-the list of authors to be used in the page headers, to prevent
-overlapping text. The following command should be placed just after
-the last \verb|\author{}| definition:
-\begin{verbatim}
-  \renewcommand{\shortauthors}{McCartney, et al.}
-\end{verbatim}
-Omitting this command will force the use of a concatenated list of all
-of the authors' names, which may result in overlapping text in the
-page headers.
-
-The article template's documentation, available at
-\url{https://www.acm.org/publications/proceedings-template}, has a
-complete explanation of these commands and tips for their effective
-use.
+\section{Conclusion}
 
 \section{Statement of Work}
+Both Matt and Sahil split the work roughly equally, with the two of us working on different parts of the report and presentation, creating the different kernels and shell scripts and analyzing the results.
 
-Authors of any work published by ACM will need to complete a rights
-form. Depending on the kind of work, and the rights management choice
-made by the author, this may be copyright transfer, permission,
-license, or an OA (open access) agreement.
+All code can be found at the following link: \url{https://github.com/sahilmgandhi/cs-259-final-project}.
 
-Regardless of the rights management choice, the author will receive a
-copy of the completed rights form once it has been submitted. This
-form contains \LaTeX\ commands that must be copied into the source
-document. When the document source is compiled, these commands and
-their parameters add formatted text to several areas of the final
-document:
-\begin{itemize}
-\item the ``ACM Reference Format'' text on the first page.
-\item the ``rights management'' text on the first page.
-\item the conference information in the page header(s).
-\end{itemize}
 
-Rights information is unique to the work; if you are preparing several
-works for an event, make sure to use the correct set of commands with
-each of the works.
+% \begin{itemize}
+% \item the ``ACM Reference Format'' text on the first page.
+% \item the ``rights management'' text on the first page.
+% \item the conference information in the page header(s).
+% \end{itemize}
 
-\section{CCS Concepts and User-Defined Keywords}
 
-Two elements of the ``acmart'' document class provide powerful
-taxonomic tools for you to help readers find your work in an online
-search.
+% \section{Tables}
 
-The ACM Computing Classification System ---
-\url{https://www.acm.org/publications/class-2012} --- is a set of
-classifiers and concepts that describe the computing
-discipline. Authors can select entries from this classification
-system, via \url{https://dl.acm.org/ccs/ccs.cfm}, and generate the
-commands to be included in the \LaTeX\ source.
+% The ``\verb|acmart|'' document class includes the ``\verb|booktabs|''
+% package --- \url{https://ctan.org/pkg/booktabs} --- for preparing
+% high-quality tables.
 
-User-defined keywords are a comma-separated list of words and phrases
-of the authors' choosing, providing a more flexible way of describing
-the research being presented.
+% Table captions are placed {\itshape above} the table.
 
-CCS concepts and user-defined keywords are required for all short- and
-full-length articles, and optional for two-page abstracts.
+% Because tables cannot be split across pages, the best placement for
+% them is typically the top of the page nearest their initial cite.  To
+% ensure this proper ``floating'' placement of tables, use the
+% environment \textbf{table} to enclose the table's contents and the
+% table caption.  The contents of the table itself must go in the
+% \textbf{tabular} environment, to be aligned properly in rows and
+% columns, with the desired horizontal and vertical rules.  Again,
+% detailed instructions on \textbf{tabular} material are found in the
+% \textit{\LaTeX\ User's Guide}.
 
-\section{Sectioning Commands}
+% Immediately following this sentence is the point at which
+% Table~\ref{tab:freq} is included in the input file; compare the
+% placement of the table here with the table in the printed output of
+% this document.
 
-Your work should use standard \LaTeX\ sectioning commands:
-\verb|section|, \verb|subsection|, \verb|subsubsection|, and
-\verb|paragraph|. They should be numbered; do not remove the numbering
-from the commands.
+% \begin{table}
+%   \caption{Frequency of Special Characters}
+%   \label{tab:freq}
+%   \begin{tabular}{ccl}
+%     \toprule
+%     Non-English or Math&Frequency&Comments\\
+%     \midrule
+%     \O & 1 in 1,000& For Swedish names\\
+%     $\pi$ & 1 in 5& Common in math\\
+%     \$ & 4 in 5 & Used in business\\
+%     $\Psi^2_1$ & 1 in 40,000& Unexplained usage\\
+%   \bottomrule
+% \end{tabular}
+% \end{table}
 
-Simulating a sectioning command by setting the first word or words of
-a paragraph in boldface or italicized text is {\bfseries not allowed.}
+% To set a wider table, which takes up the whole width of the page's
+% live area, use the environment \textbf{table*} to enclose the table's
+% contents and the table caption.  As with a single-column table, this
+% wide table will ``float'' to a location deemed more
+% desirable. Immediately following this sentence is the point at which
+% Table~\ref{tab:commands} is included in the input file; again, it is
+% instructive to compare the placement of the table here with the table
+% in the printed output of this document.
 
-\section{Tables}
+% \begin{table*}
+%   \caption{Some Typical Commands}
+%   \label{tab:commands}
+%   \begin{tabular}{ccl}
+%     \toprule
+%     Command &A Number & Comments\\
+%     \midrule
+%     \texttt{{\char'134}author} & 100& Author \\
+%     \texttt{{\char'134}table}& 300 & For tables\\
+%     \texttt{{\char'134}table*}& 400& For wider tables\\
+%     \bottomrule
+%   \end{tabular}
+% \end{table*}
 
-The ``\verb|acmart|'' document class includes the ``\verb|booktabs|''
-package --- \url{https://ctan.org/pkg/booktabs} --- for preparing
-high-quality tables.
-
-Table captions are placed {\itshape above} the table.
-
-Because tables cannot be split across pages, the best placement for
-them is typically the top of the page nearest their initial cite.  To
-ensure this proper ``floating'' placement of tables, use the
-environment \textbf{table} to enclose the table's contents and the
-table caption.  The contents of the table itself must go in the
-\textbf{tabular} environment, to be aligned properly in rows and
-columns, with the desired horizontal and vertical rules.  Again,
-detailed instructions on \textbf{tabular} material are found in the
-\textit{\LaTeX\ User's Guide}.
-
-Immediately following this sentence is the point at which
-Table~\ref{tab:freq} is included in the input file; compare the
-placement of the table here with the table in the printed output of
-this document.
-
-\begin{table}
-  \caption{Frequency of Special Characters}
-  \label{tab:freq}
-  \begin{tabular}{ccl}
-    \toprule
-    Non-English or Math&Frequency&Comments\\
-    \midrule
-    \O & 1 in 1,000& For Swedish names\\
-    $\pi$ & 1 in 5& Common in math\\
-    \$ & 4 in 5 & Used in business\\
-    $\Psi^2_1$ & 1 in 40,000& Unexplained usage\\
-  \bottomrule
-\end{tabular}
-\end{table}
-
-To set a wider table, which takes up the whole width of the page's
-live area, use the environment \textbf{table*} to enclose the table's
-contents and the table caption.  As with a single-column table, this
-wide table will ``float'' to a location deemed more
-desirable. Immediately following this sentence is the point at which
-Table~\ref{tab:commands} is included in the input file; again, it is
-instructive to compare the placement of the table here with the table
-in the printed output of this document.
-
-\begin{table*}
-  \caption{Some Typical Commands}
-  \label{tab:commands}
-  \begin{tabular}{ccl}
-    \toprule
-    Command &A Number & Comments\\
-    \midrule
-    \texttt{{\char'134}author} & 100& Author \\
-    \texttt{{\char'134}table}& 300 & For tables\\
-    \texttt{{\char'134}table*}& 400& For wider tables\\
-    \bottomrule
-  \end{tabular}
-\end{table*}
-
-\section{Math Equations}
-You may want to display math equations in three distinct styles:
-inline, numbered or non-numbered display.  Each of the three are
-discussed in the next sections.
-
-\subsection{Inline (In-text) Equations}
-A formula that appears in the running text is called an inline or
-in-text formula.  It is produced by the \textbf{math} environment,
-which can be invoked with the usual
-\texttt{{\char'134}begin\,\ldots{\char'134}end} construction or with
-the short form \texttt{\$\,\ldots\$}. You can use any of the symbols
-and structures, from $\alpha$ to $\omega$, available in
-\LaTeX~\cite{Lamport:LaTeX}; this section will simply show a few
-examples of in-text equations in context. Notice how this equation:
-\begin{math}
-  \lim_{n\rightarrow \infty}x=0
-\end{math},
-set here in in-line math style, looks slightly different when
-set in display style.  (See next section).
-
-\subsection{Display Equations}
-A numbered display equation---one set off by vertical space from the
-text and centered horizontally---is produced by the \textbf{equation}
-environment. An unnumbered display equation is produced by the
-\textbf{displaymath} environment.
-
-Again, in either environment, you can use any of the symbols and
-structures available in \LaTeX\@; this section will just give a couple
-of examples of display equations in context.  First, consider the
-equation, shown as an inline equation above:
-\begin{equation}
-  \lim_{n\rightarrow \infty}x=0
-\end{equation}
-Notice how it is formatted somewhat differently in
-the \textbf{displaymath}
-environment.  Now, we'll enter an unnumbered equation:
-\begin{displaymath}
-  \sum_{i=0}^{\infty} x + 1
-\end{displaymath}
-and follow it with another numbered equation:
-\begin{equation}
-  \sum_{i=0}^{\infty}x_i=\int_{0}^{\pi+2} f
-\end{equation}
-just to demonstrate \LaTeX's able handling of numbering.
-
-\section{Figures}
-
-The ``\verb|figure|'' environment should be used for figures. One or
-more images can be placed within a figure. If your figure contains
-third-party material, you must clearly identify it as such, as shown
-in the example below.
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\linewidth]{sample-franklin}
-  \caption{1907 Franklin Model D roadster. Photograph by Harris \&
-    Ewing, Inc. [Public domain], via Wikimedia
-    Commons. (\url{https://goo.gl/VLCRBB}).}
-  \Description{The 1907 Franklin Model D roadster.}
-\end{figure}
-
-Your figures should contain a caption which describes the figure to
-the reader. Figure captions go below the figure. Your figures should
-{\bfseries also} include a description suitable for screen readers, to
-assist the visually-challenged to better understand your work.
-
-Figure captions are placed {\itshape below} the figure.
-
-\subsection{The ``Teaser Figure''}
-
-A ``teaser figure'' is an image, or set of images in one figure, that
-are placed after all author and affiliation information, and before
-the body of the article, spanning the page. If you wish to have such a
-figure in your article, place the command immediately before the
-\verb|\maketitle| command:
-\begin{verbatim}
-  \begin{teaserfigure}
-    \includegraphics[width=\textwidth]{sampleteaser}
-    \caption{figure caption}
-    \Description{figure description}
-  \end{teaserfigure}
-\end{verbatim}
-
-\section{Citations and Bibliographies}
-
-The use of \BibTeX\ for the preparation and formatting of one's
-references is strongly recommended. Authors' names should be complete
---- use full first names (``Donald E. Knuth'') not initials
-(``D. E. Knuth'') --- and the salient identifying features of a
-reference should be included: title, year, volume, number, pages,
-article DOI, etc.
-
-The bibliography is included in your source document with these two
-commands, placed just before the \verb|\end{document}| command:
-\begin{verbatim}
-  \bibliographystyle{ACM-Reference-Format}
-  \bibliography{bibfile}
-\end{verbatim}
-where ``\verb|bibfile|'' is the name, without the ``\verb|.bib|''
-suffix, of the \BibTeX\ file.
-
-Citations and references are numbered by default. A small number of
-ACM publications have citations and references formatted in the
-``author year'' style; for these exceptions, please include this
-command in the {\bfseries preamble} (before
-``\verb|\begin{document}|'') of your \LaTeX\ source:
-\begin{verbatim}
-  \citestyle{acmauthoryear}
-\end{verbatim}
-
-  Some examples.  A paginated journal article \cite{Abril07}, an
-  enumerated journal article \cite{Cohen07}, a reference to an entire
-  issue \cite{JCohen96}, a monograph (whole book) \cite{Kosiur01}, a
-  monograph/whole book in a series (see 2a in spec. document)
-  \cite{Harel79}, a divisible-book such as an anthology or compilation
-  \cite{Editor00} followed by the same example, however we only output
-  the series if the volume number is given \cite{Editor00a} (so
-  Editor00a's series should NOT be present since it has no vol. no.),
-  a chapter in a divisible book \cite{Spector90}, a chapter in a
-  divisible book in a series \cite{Douglass98}, a multi-volume work as
-  book \cite{Knuth97}, an article in a proceedings (of a conference,
-  symposium, workshop for example) (paginated proceedings article)
-  \cite{Andler79}, a proceedings article with all possible elements
-  \cite{Smith10}, an example of an enumerated proceedings article
-  \cite{VanGundy07}, an informally published work \cite{Harel78}, a
-  doctoral dissertation \cite{Clarkson85}, a master's thesis:
-  \cite{anisi03}, an online document / world wide web resource
-  \cite{Thornburg01, Ablamowicz07, Poker06}, a video game (Case 1)
-  \cite{Obama08} and (Case 2) \cite{Novak03} and \cite{Lee05} and
-  (Case 3) a patent \cite{JoeScientist001}, work accepted for
-  publication \cite{rous08}, 'YYYYb'-test for prolific author
-  \cite{SaeediMEJ10} and \cite{SaeediJETC10}. Other cites might
-  contain 'duplicate' DOI and URLs (some SIAM articles)
-  \cite{Kirschmer:2010:AEI:1958016.1958018}. Boris / Barbara Beeton:
-  multi-volume works as books \cite{MR781536} and \cite{MR781537}. A
-  couple of citations with DOIs:
-  \cite{2004:ITE:1009386.1010128,Kirschmer:2010:AEI:1958016.1958018}. Online
-  citations: \cite{TUGInstmem, Thornburg01, CTANacmart}. Artifacts:
-  \cite{R} and \cite{UMassCitations}.
-
-\section{Acknowledgments}
-
-Identification of funding sources and other support, and thanks to
-individuals and groups that assisted in the research and the
-preparation of the work should be included in an acknowledgment
-section, which is placed just before the reference section in your
-document.
-
-This section has a special environment:
-\begin{verbatim}
-  \begin{acks}
-  ...
-  \end{acks}
-\end{verbatim}
-so that the information contained therein can be more easily collected
-during the article metadata extraction phase, and to ensure
-consistency in the spelling of the section heading.
-
-Authors should not prepare this section as a numbered or unnumbered {\verb|\section|}; please use the ``{\verb|acks|}'' environment.
-
-\section{Appendices}
-
-If your work needs an appendix, add it before the
-``\verb|\end{document}|'' command at the conclusion of your source
-document.
-
-Start the appendix with the ``\verb|appendix|'' command:
-\begin{verbatim}
-  \appendix
-\end{verbatim}
-and note that in the appendix, sections are lettered, not
-numbered. This document has two appendices, demonstrating the section
-and subsection identification method.
-
-\section{SIGCHI Extended Abstracts}
-
-The ``\verb|sigchi-a|'' template style (available only in \LaTeX\ and
-not in Word) produces a landscape-orientation formatted article, with
-a wide left margin. Three environments are available for use with the
-``\verb|sigchi-a|'' template style, and produce formatted output in
-the margin:
-\begin{itemize}
-\item {\verb|sidebar|}:  Place formatted text in the margin.
-\item {\verb|marginfigure|}: Place a figure in the margin.
-\item {\verb|margintable|}: Place a table in the margin.
-\end{itemize}
-
-%%
-%% The acknowledgments section is defined using the "acks" environment
-%% (and NOT an unnumbered section). This ensures the proper
-%% identification of the section in the article metadata, and the
-%% consistent spelling of the heading.
-\begin{acks}
-To Robert, for the bagels and explaining CMYK and color spaces.
-\end{acks}
-
-%%
 %% The next two lines define the bibliography style to be used, and
 %% the bibliography file.
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sample-base}
+\bibliography{bibliography}
 
+\newpage~\newpage
 %%
 %% If your work has an appendix, this is the place to put it.
 \appendix
 
-\section{Research Methods}
+\section{Appendices}
 
-\subsection{Part One}
+In order to not clutter the report above, we added all the images of the graphs below. The first section contains the 
+images for the Tesla V100 GPU, and the second for the M60 GPU. 
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi
-malesuada, quam in pulvinar varius, metus nunc fermentum urna, id
-sollicitudin purus odio sit amet enim. Aliquam ullamcorper eu ipsum
-vel mollis. Curabitur quis dictum nisl. Phasellus vel semper risus, et
-lacinia dolor. Integer ultricies commodo sem nec semper.
+\subsection{Tesla V100 GPU Graphs}
 
-\subsection{Part Two}
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/seq-conv}
+  \includegraphics[width=\textwidth]{img/conc-conv}
+  \caption{Sequential and concurrent convolution performance.}
+\end{figure}
 
-Etiam commodo feugiat nisl pulvinar pellentesque. Etiam auctor sodales
-ligula, non varius nibh pulvinar semper. Suspendisse nec lectus non
-ipsum convallis congue hendrerit vitae sapien. Donec at laoreet
-eros. Vivamus non purus placerat, scelerisque diam eu, cursus
-ante. Etiam aliquam tortor auctor efficitur mattis.
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/seq-conv2}
+  \includegraphics[width=\textwidth]{img/conc-conv2}
+  \caption{Sequential and concurrent convolution 2 performance.}
+\end{figure}
 
-\section{Online Resources}
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/batch-conv2}
+  \caption{Batched convolution 2 performance.}
+\end{figure}
 
-Nam id fermentum dui. Suspendisse sagittis tortor a nulla mollis, in
-pulvinar ex pretium. Sed interdum orci quis metus euismod, et sagittis
-enim maximus. Vestibulum gravida massa ut felis suscipit
-congue. Quisque mattis elit a risus ultrices commodo venenatis eget
-dui. Etiam sagittis eleifend elementum.
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/seq-class}
+  \includegraphics[width=\textwidth]{img/conc-class}
+  \caption{Sequential and concurrent classifier performance.}
+\end{figure}
 
-Nam interdum magna at lectus dignissim, ac dignissim lorem
-rhoncus. Maecenas eu arcu ac neque placerat aliquam. Nunc pulvinar
-massa et mattis lacinia.
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/batch-class}
+  \caption{Batched classifier performance.}
+\end{figure}
+
+\newpage~\newpage
+\subsection{Tesla M60 GPU Graphs}
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/m60-seq-conv}
+  \includegraphics[width=\textwidth]{img/m60-conc-conv}
+  \caption{Sequential and concurrent convolution performance.}
+\end{figure}
+
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/m60-seq-conv2}
+  \includegraphics[width=\textwidth]{img/m60-conc-conv2}
+  \caption{Sequential and concurrent convolution 2 performance.}
+\end{figure}
+
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/m60-batch-conv2}
+  \caption{Batched convolution 2 performance.}
+\end{figure}
+
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/m60-seq-class}
+  \includegraphics[width=\textwidth]{img/m60-conc-class}
+  \caption{Sequential and concurrent classifier performance.}
+\end{figure}
+
+\newpage~\newpage
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\textwidth]{img/m60-batch-class}
+  \caption{Batched classifier performance.}
+\end{figure}
 
 \end{document}
 \endinput

@@ -1,0 +1,74 @@
+This is BibTeX, Version 0.99d (TeX Live 2018)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: sahil_matt_259_finalreport.aux
+The style file: ACM-Reference-Format.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: bibliography.bib
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--no key, author in nvidia_all_gpus
+Warning--no author, editor, organization, or key in nvidia_all_gpus
+Warning--to sort, need author or key in nvidia_all_gpus
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=20001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Warning--no key, author in nvidia_all_gpus
+Warning--no key, author in nvidia_all_gpus
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--no key, author in nvidia_all_gpus
+Warning--no author, editor, organization, or key in nvidia_all_gpus
+Warning--empty author in nvidia_all_gpus
+Warning--empty year in michaelmichael
+Warning--no journal in gregg_dorn_hazelwood_skadron_2016
+Warning--no number and no volume in gregg_dorn_hazelwood_skadron_2016
+Warning--page numbers missing in both pages and numpages fields in gregg_dorn_hazelwood_skadron_2016
+Warning--no number and no volume in jiao_lu_huynh_mitra_2015
+Warning--page numbers missing in both pages and numpages fields in jiao_lu_huynh_mitra_2015
+Warning--empty year in nvidia_spec
+Warning--empty year in nvidia_concurrent
+Warning--no number and no volume in wang_huang_el_ghazawi_2011
+Warning--page numbers missing in both pages and numpages fields in wang_huang_el_ghazawi_2011
+Warning--no number and no volume in wende_cordes_steinke_2012
+Warning--page numbers missing in both pages and numpages fields in wende_cordes_steinke_2012
+You've used 9 entries,
+            5732 wiz_defined-function locations,
+            1341 strings with 16429 characters,
+and the built_in function-call counts, 8350 in all, are:
+= -- 1045
+> -- 306
+< -- 0
++ -- 98
+- -- 95
+* -- 609
+:= -- 868
+add.period$ -- 44
+call.type$ -- 9
+change.case$ -- 58
+chr.to.int$ -- 8
+cite$ -- 33
+duplicate$ -- 687
+empty$ -- 506
+format.name$ -- 119
+if$ -- 2011
+int.to.chr$ -- 3
+int.to.str$ -- 1
+missing$ -- 20
+newline$ -- 140
+num.names$ -- 63
+pop$ -- 331
+preamble$ -- 1
+purify$ -- 120
+quote$ -- 0
+skip$ -- 205
+stack$ -- 0
+substring$ -- 455
+swap$ -- 50
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 194
+warning$ -- 20
+while$ -- 40
+width$ -- 0
+write$ -- 211
+(There were 20 warnings)
