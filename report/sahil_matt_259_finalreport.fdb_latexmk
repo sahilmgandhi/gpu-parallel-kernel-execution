@@ -1,14 +1,14 @@
 # Fdb version 3
-["bibtex sahil_matt_259_finalreport"] 1560468309 "sahil_matt_259_finalreport.aux" "sahil_matt_259_finalreport.bbl" "sahil_matt_259_finalreport" 1560468320
+["bibtex sahil_matt_259_finalreport"] 1560479490 "sahil_matt_259_finalreport.aux" "sahil_matt_259_finalreport.bbl" "sahil_matt_259_finalreport" 1560479537
   "/usr/local/texlive/2018/texmf-dist/bibtex/bst/acmart/ACM-Reference-Format.bst" 1523217934 83479 53d55cf5e954c8907ec8f61116838886 ""
   "bibliography.bib" 1560465519 2505 36eca7c6618c4213345371644c6465a4 ""
-  "sahil_matt_259_finalreport.aux" 1560468319 5717 1e6dc5a895b9a4c7df83c2a0aa10d8fc ""
+  "sahil_matt_259_finalreport.aux" 1560479537 6269 fa66195b6bb1674726468a1c9e8d1377 ""
   (generated)
-  "sahil_matt_259_finalreport.bbl"
   "sahil_matt_259_finalreport.blg"
-["pdflatex"] 1560468309 "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.tex" "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.pdf" "sahil_matt_259_finalreport" 1560468320
-  "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.aux" 1560468319 5717 1e6dc5a895b9a4c7df83c2a0aa10d8fc ""
-  "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.tex" 1560468298 27841 4814428731dbdd930ddb3932f540f6ae ""
+  "sahil_matt_259_finalreport.bbl"
+["pdflatex"] 1560479527 "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.tex" "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.pdf" "sahil_matt_259_finalreport" 1560479537
+  "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.aux" 1560479537 6269 fa66195b6bb1674726468a1c9e8d1377 ""
+  "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.tex" 1560479526 39263 611c6496c73c070d8cf28504fad738ae ""
   "/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/base/8r.enc" 1480098666 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/libertine/lbtn_25tcsq.enc" 1490133665 2921 8ca0eb0831f9bc5da080d3697cfe67bf ""
   "/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/libertine/lbtn_76gpa5.enc" 1490133665 2933 9ad527ce78d7c5fa0a642dead095f172 ""
@@ -199,14 +199,14 @@
   "img/seq-class.png" 1560465780 446886 7c30b70a2a797d94724eef86036661dd ""
   "img/seq-conv.png" 1560467814 541595 7f3d39eb4f962af9ac043589028cf981 ""
   "img/seq-conv2.png" 1560465780 295565 31744e496a8d7bfbb7fdd3cdd567da29 ""
-  "sahil_matt_259_finalreport.aux" 1560468319 5717 1e6dc5a895b9a4c7df83c2a0aa10d8fc ""
-  "sahil_matt_259_finalreport.bbl" 1560468309 6521 3d084e920c1c6fb77c2bda1bb557d1b2 "bibtex sahil_matt_259_finalreport"
-  "sahil_matt_259_finalreport.out" 1560468319 2445 5041ed96c4f6f9d4ea409551df3e013b ""
-  "sahil_matt_259_finalreport.tex" 1560468298 27841 4814428731dbdd930ddb3932f540f6ae ""
+  "sahil_matt_259_finalreport.aux" 1560479537 6269 fa66195b6bb1674726468a1c9e8d1377 ""
+  "sahil_matt_259_finalreport.bbl" 1560479490 6521 3d084e920c1c6fb77c2bda1bb557d1b2 "bibtex sahil_matt_259_finalreport"
+  "sahil_matt_259_finalreport.out" 1560479537 3550 2e4357e148dcb92dee941b40b843170c ""
+  "sahil_matt_259_finalreport.tex" 1560479526 39263 611c6496c73c070d8cf28504fad738ae ""
   (generated)
   "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.pdf"
-  "sahil_matt_259_finalreport.aux"
-  "sahil_matt_259_finalreport.out"
-  "sahil_matt_259_finalreport.log"
-  "sahil_matt_259_finalreport.pdf"
   "/Users/sahilmgandhi/Desktop/Github/cs-259-final-project/report/sahil_matt_259_finalreport.log"
+  "sahil_matt_259_finalreport.log"
+  "sahil_matt_259_finalreport.out"
+  "sahil_matt_259_finalreport.pdf"
+  "sahil_matt_259_finalreport.aux"

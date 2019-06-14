@@ -107,12 +107,9 @@
 %% article.
 \begin{abstract}
 
-  While Moore’s law may be slowing down, GPU’s continue to get \textit{considerably} better with each generation. In 2010, Nvidia began to support executing multiple kernels at once (concurrently), initially allowing only 4-16 kernels to be executed concurrently but increasing it to 128 today. Kernels and machine learning problems that used to take up all the resources of a GPU several years ago now only take a fraction of compute power. In this report, we specifically focus on comparing the concurrent execution of kernels to their sequential counterparts to investigate whether the overhead of launching kernels in parallel defeats any performance gains from the concurrency we are exploiting. We also compare these kernels to their batched versions, the industry norm for maximizing performance. 
-The results that we obtained suggest that concurrent kernel execution can increase performance anywhere from \% to \%, with larger problems seeing larger performance gains. However, the batched kernels beat the performance of even the concurrent kernels from anywhere between \% to \%. Our findings suggest that ultimately while concurrent kernels are a source of performance gains, they are not the best out there, which is why batching is still the industry standard today. The only way that concurrent kernel execution may be used over batching is if different types of problems were mixed together, as batching requires all the batches to be of the same size/type, but heterogeneous kernels can be concurrently executed.
+While Moore’s law may be slowing down, GPU’s continue to get \textit{considerably} better with each generation. In 2010, Nvidia began to support executing multiple kernels at once (concurrently), initially allowing only 4-16 kernels to be executed concurrently but increasing it to 128 today. Kernels and machine learning problems that used to take up all the resources of a GPU several years ago now only take a fraction of compute power. In this report, we specifically focus on comparing the concurrent execution of kernels to their sequential counterparts to investigate whether the overhead of launching kernels in parallel defeats any performance gains from the concurrency we are exploiting. We also compare these kernels to their batched versions, the industry norm for maximizing performance. 
 
-// TODO: Add some concrete numbers here. 
-
-
+The results that we obtained suggest that concurrent kernel execution can increase performance anywhere from 1.25x to 15x, with smaller problems seeing larger performance gains. For smaller problems, batched kernels beat the performance of concurrent kernels greatly, but for large problems, the performances are approximately the same with concurrent kernels actually being about 5\% to 10\% faster. Our findings suggest that if there is a level of parallelism that can be added, such as in the classifier where not all dimensions of threads are used, concurrent kernels can provide performance on par or even better than batched kernels. Combined with the the paper of \textit{Jiao et al.} where concurrent kernels provided almost 34.5\% better energy efficiency, perhaps these may be the future of running many kernels \cite{jiao_lu_huynh_mitra_2015}. Furthermore, concurrent kernel execution may be used over batching is if different types of problems were mixed together, as batching requires all the batches to be of the same size/type, but heterogeneous kernels can be concurrently executed.
 \end{abstract}
 
 %%
@@ -238,8 +235,49 @@ Furthermore, as aforementioned, our classifier and convolution kernels are not t
 Finally, to make our evaluation a bit more general, we decided to also run our kernels on an Nvidia M60 GPU on the AWS g3s.xlarge instance. This GPU has 16 SMs that we can use, for a total of 1024 cores, so it is about 1/5 the size of the Tesla V100 that we had available from the professor. The results that we got from testing on this GPU are quite different from the V100 GPU results (to say the least), and we will briefly touch on them in the evaluation section below. 
 
 \section{Evaluation}
+To not clutter the report, we have added all the graphs to the appendix of this report.
+
+\subsection{Sequential vs Concurrent Convolution 1}
+The sequential execution of the first convolution kernel we implemented increased linearly in execution time as the number of kernels increased. Also, the GFLOPS stayed constant for all input and output sizes that we tested. In other words, the GFLOPS was independent of the number of kernels being executed, which is logical for a sequential implementation where the GFLOPS should neither be increasing nor decreasing. 
+
+The concurrent execution of the same convolution kernel performed much faster than sequential execution. We observed speedup of execution time in the range of 5x - 15x for the different test cases that we were profiling. This resulted in a much higher maximum throughput of 750 GFLOPS for concurrent execution versus the 300 GFLOPS for sequential execution. We conclude that concurrent execution of the kernels had larger utilization of the GPU’s cores and other resources, since concurrent kernels could be switched in while others were waiting to hide latency of memory accesses. However, we also notice that the throughput drops when the number of kernels increases past the peak throughput. We reason that the GPU resources become saturated after this point, and executing more kernels concurrently cannot raise utilization any further. Instead, the overhead of launching and managing more kernels increases total latency of context switches, decreasing throughput.
+
+
+\subsection{Sequential vs Concurrent vs Batched Convolution 2}
+
+We implemented a second convolution kernel that was capable of batching, and ran the same sequential and concurrent tests that we had profiled for the first convolution kernel. We also ran the same tests in a batched version, in which only one kernel would be executed to run all work that normally would have been distributed across multiple kernels.
+
+In comparing the sequential and concurrent executions of this second convolution, we notice similar patterns to that of the first convolution. Sequential execution increased linearly with respect to the number of kernels, and GFLOPS stayed mostly consistent, unaffected by the number of kernels. The sequential execution had odd spikes of performance when the number of kernels was low, which we could not explain and was probably due to other factors we could not control within Cuda or the GPU. Aside from this, the concurrent execution times were faster than sequential, achieving speedup in the range of 1.4x - 2x. The throughput of this second convolution was similar in trend to that of the first convolution, since it also peaked at a maximum before dropping as number of kernels increased. Again, we reason that the causes for this drop are saturation of GPU resources and overhead of concurrent kernels.
+
+The batched execution of this convolution had much higher performance than the concurrent version did, achieving as much as 8x speedup for most batch sizes. The maximum throughput peaked at about 600 GFLOPS, linearly increasing as the number of batches increased. This is a notable difference compared to concurrent and sequential executions, which seem to plateau or fall with increasing number of kernels. There is no overhead of launching and managing multiple kernels, and all of the GPU’s resources are allocated to this single kernel. As batch size increases, the kernel has more computation to distribute among blocks, allowing for efficient GPU utilization. It is noted that this throughput is lower than the first concurrent-convolution’s maximum throughput of 750 GFLOPs. However, to give this second convolution the ability to perform on batches, we removed a level of parallelism that the kernel could have distributed among thread blocks, so it is not a fair comparison.
+
+\subsection{Sequential vs Concurrent vs Batched Classifier}
+
+We also implemented a classifier layer on which we could run profiling tests. We wanted to see if similar results would be seen with a different type of kernel. For sequential execution, we notice that execution time increases linearly as the number of kernels increases, similar to the convolution results. Likewise, the throughput seems to plateau with the increasing number of kernels. This is reasonable since sequential execution should not increase throughput.
+
+Comparing sequential and concurrent executions of the classifier layer, we notice that some of the execution times of concurrent kernels were slower than the sequential counterparts. For test cases with smaller input and output sizes, concurrent kernels were able to produce speedup in the range of 1.5x - 2.0x. This allowed the maximum throughput on concurrent kernels to achieve 150 GFLOPS compared to the sequential maximum of 100 GFLOPS. However, for test cases with larger sizes, concurrent execution was slower than sequential execution. We reason that the overhead of concurrent execution was much greater than executing sequentially. Since the classifier kernel was not optimized, data reuse was also not optimized. We suspect that the concurrent kernels were competing for memory resources when the problem size became too large, increasing latency of memory reads beyond what could be hidden by concurrency. Sequential kernels did not encounter this overhead, allowing them to finish faster. 
+
+The batched execution of the classifier resulted in approximately the same performance as the concurrent kernel implementation for the four larger kernel sizes. In fact, for these four larger kernel sizes, the concurrent classifier actually performed about 5\% to 10\% better than the batched versions. However for the smaller three problem sizes, the batched classifier almost 2x better as the number of batches went up. This suggests that the few microseconds of overhead for the smaller problems that is introduced in the concurrent implementation affects the overall performance considerably (since the execution time here is also in the order of microseconds). Batching does not suffer from this overhead since only one kernel is ever queued and launched. However what is more important about this conclusion is that for classification layers, we see that concurrent kernels can provide equivalent if not better performance and are thus worth a deeper investigation on some of the state of the art kernels (such as CUDNN).
+
+
+\subsection{AWS M60 Results}
+We ran all of our profiling scripts with the same number of blocks and batch counts for the different kernels on an AWS g3s.xlarge instance. While the GPU is considerably weaker than the Tesla V100 GPU, the results are not as impressive or as conclusive (but still not completely inconclusive either) as with the ones discussed above. 
+  
+For convolution 1, the concurrent kernel implementation is about 1.2x - 1.4x faster than the sequential implementation but it quickly saturates within the first concurrent 4-6 kernels that were executed. This lines up quite similarly to the results of \textit{Wende et al.} where they only saw 1.2x improvement with concurrent kernels if the kernels had more than 1 block worth of work to do. Our kernels for convolution had between 64 and 256 blocks to compute, so the results match up \cite{wende_cordes_steinke_2012}. 
+  
+For convolution 2, we see that the concurrent kernel implementation initially performs about 2x better than the sequential version until 6 kernel mark after which the performance quickly dives to be the same as the sequential version. This intuitively does not make sense, as even if the GPU is fully saturated or over saturated it should still deliver performance that is larger than the purely sequential version. The batched implementation does not suffer from this though as the performance for batched conv2 continues to increase as the number of batches increased till the 18 batch mark before falling slightly as the GPU got over saturated. Despite this drop, it still provided more than 6x throughput than the sequential and concurrent kernel versions at 20 batches.
+  
+For the classifier, we observed that the for the larger problems, the concurrent, sequential and batched kernels all resulted in the same performance. However the smaller problems sizes saw noticeable improvement with the concurrent and batched offering approximately the same performance (2x to 5x better than the sequential kernel implementation).
 
 \section{Conclusion}
+In conclusion, we can see that concurrent kernel execution is a pretty powerful tool that for certain problems can provide comparable or better performance to batching. We saw anywhere between 1.5x to 15x throughput improvement from switching from sequential to concurrent kernel execution. With the classifier, we saw approximately the same performance between concurrent and batched kernels, suggesting that for problems with limited amounts of memory re-use and large overall memory requirements, the two methods can provide comparable performance. We saw however with the second convolution kernel that the batched variant provided anywhere between 2x to 8x better performance over the concurrent variant. This was likely due to the kernel being severely under-optimized after we took out one of the dimensions of threads from the original convolution problem. Although it is not a fair comparison to make, we can see that the batched conv2 performance is actually lower than the concurrent kernel performance for conv1 by about 1.2 - 1.4x. Overall though, it seems like concurrent kernel execution can be a worthy contender to the batched kernel execution that is the industry norm today. 
+
+For future ideas in expanding this work, we considered several different paths. One idea was looking into heterogeneous sets of kernels. As we mentioned earlier, batching requires the same type of kernel to be executed. Thus, with sets of individually unique kernels, batching to increase performance is no longer an option. Concurrent execution is the next option, for which we could investigate the performance gains. Another idea was investigating CUDNN to see if we could modify it for concurrent kernel execution. If the modifications were possible, we could profile the fully-optimized kernels and measure the performance changes.
+  
+Currently, we only considered performance gains in computation from executing kernels concurrently. However, there are multiple parts to consider when running on the GPU, such as copying memory to the device (H2D) and copying the results back from the device (D2H). These memory copies can be executed asynchronously by working in conjunction with cudaStream objects. Considering performance gains from concurrently performing memory copies and computation, would inflate our results, but is still worth investigating.
+
+We also were unable to investigate how Tensor cores would affect the performance. Tensor cores are limited in numbers, kind of like how SMs were in the past, so we could quickly saturate our supply of them with even a couple kernels. However, a future investigation could confirm or reject this hypothesis.
+
 
 \section{Statement of Work}
 Both Matt and Sahil split the work roughly equally, with the two of us working on different parts of the report and presentation, creating the different kernels and shell scripts and analyzing the results.
@@ -320,7 +358,7 @@ All code can be found at the following link: \url{https://github.com/sahilmgandh
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}
 
-\newpage~\newpage
+\newpage
 %%
 %% If your work has an appendix, this is the place to put it.
 \appendix
@@ -370,7 +408,7 @@ images for the Tesla V100 GPU, and the second for the M60 GPU.
 \end{figure}
 
 \newpage~\newpage
-\subsection{Tesla M60 GPU Graphs}
+\subsection{AWS M60 GPU Graphs}
 \begin{figure}[htb]
   \centering
   \includegraphics[width=\textwidth]{img/m60-seq-conv}
